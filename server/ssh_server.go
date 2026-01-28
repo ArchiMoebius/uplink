@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	pb "uplink/pkg/gen/v1"
+	pb "github.com/ArchiMoebius/uplinkpkg/gen/v1"
 )
 
 type SSHTransporterServer struct {

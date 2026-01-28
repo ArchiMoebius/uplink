@@ -5,7 +5,7 @@ package uplink.event.ssh.v1;
 import "google/api/field_info.proto";
 import "google/protobuf/empty.proto";
 
-option go_package = "uplink/event/ssh/v1;eventssh";
+option go_package = "github.com/ArchiMoebius/uplinkevent/ssh/v1;eventssh";
 
 // Transporter service for streaming SSH connection events
 service Transporter {

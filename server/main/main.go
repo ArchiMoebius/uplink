@@ -16,8 +16,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	pb "uplink/pkg/gen/v1"
-	"uplink/server/handler"
+	pb "github.com/ArchiMoebius/uplinkpkg/gen/v1"
+	"github.com/ArchiMoebius/uplinkserver/handler"
 )
 
 var (

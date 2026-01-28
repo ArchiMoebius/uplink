@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"uplink/client"
-	pb "uplink/pkg/gen/v1"
+	client "github.com/ArchiMoebius/uplinkclient"
+	pb "github.com/ArchiMoebius/uplinkpkg/gen/v1"
 
 	"github.com/google/uuid"
 )

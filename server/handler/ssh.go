@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	pb "uplink/pkg/gen/v1"
+	pb "github.com/ArchiMoebius/uplinkpkg/gen/v1"
 
 	"gorm.io/gorm"
 )

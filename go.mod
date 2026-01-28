@@ -1,4 +1,4 @@
-module uplink
+module github.com/ArchiMoebius/uplink
 
 go 1.24.5
 
