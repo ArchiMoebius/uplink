@@ -1,0 +1,3 @@
+pkg/gen/**/*
+*.db
+*.mmdb

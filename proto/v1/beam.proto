@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package uplink.event.ssh.v1;
+
+import "google/api/field_info.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "uplink/event/ssh/v1;eventssh";
+
+// Transporter service for streaming SSH connection events
+service Transporter {
+  rpc Beam (stream SSHConnectionEvent) returns (google.protobuf.Empty) {}
+}
+
+// SSHConnectionEvent represents an SSH connection attempt or session.
+// Fields are ordered for optimal memory alignment and wire format efficiency:
+// - Fixed-size fields first (timestamps, fixed32/64)
+// - Variable-length required fields (strings, bytes)
+// - Optional/repeated fields last
+message SSHConnectionEvent {
+  // Timestamp of the event in microseconds since Unix epoch (UTC).
+  // Using int64 for microsecond precision is more efficient than string ISO 8601.
+  // Can be converted to ISO 8601 in application layer if needed.
+  int64 timestamp_micros = 1;
+
+  // Source IP address as 32-bit integer (IPv4) or 128-bit (IPv6).
+  // Using fixed32 for IPv4 is more efficient than string representation.
+  // For IPv4: use fixed32. For IPv6: use bytes with length 16.
+  oneof source_ip {
+    fixed32 source_ipv4 = 2 [
+      (google.api.field_info).format = IPV4
+    ];
+    bytes source_ipv6 = 3 [
+      (google.api.field_info).format = IPV6
+    ];
+  }
+
+  // Source port number (0-65535).
+  // Using uint16 instead of string saves space.
+  fixed32 source_port = 4;
+
+  // Service UUID identifying the SSH service instance.
+  // Using bytes (16 bytes) is more efficient than string (36 bytes with hyphens).
+  bytes service_uuid = 5 [
+    (google.api.field_info).format = UUID4
+  ];
+
+  // HASSH fingerprint for client identification.
+  // Required field for connection analysis.
+  bytes hassh = 6;
+
+  // Public key(s) used or attempted during authentication.
+  // Stored as repeated bytes for multiple key attempts.
+  repeated bytes public_key_sums = 11;
+
+  // Authentication method(s) attempted or used.
+  // Common values: "password", "publickey", "keyboard-interactive", "gssapi-with-mic"
+  // Stored as repeated enum for efficiency over repeated strings.
+  repeated AuthMethod auth_methods = 8;
+
+  // client_version as reported by protocol
+  // Required field for connection analysis.
+  string ssh_client_name = 7;
+  // Username attempted during authentication.
+  // Optional as some probes may not include credentials.
+  bytes username = 9;
+
+  // Password attempted during authentication.
+  // Stored as bytes for binary safety and to avoid string encoding overhead.
+  bytes password = 10;
+}
+
+// AuthMethod enum for efficient storage of authentication methods.
+// Using enum (varint) instead of strings significantly reduces bandwidth.
+enum AuthMethod {
+  AUTH_METHOD_UNSPECIFIED = 0;
+  AUTH_METHOD_PASSWORD = 1;
+  AUTH_METHOD_PUBLICKEY = 2;
+  AUTH_METHOD_KEYBOARD_INTERACTIVE = 3;
+  AUTH_METHOD_GSSAPI_WITH_MIC = 4;
+  AUTH_METHOD_HOSTBASED = 5;
+  AUTH_METHOD_NONE = 6;
+}
