@@ -301,7 +301,7 @@ const file_v1_beam_proto_rawDesc = "" +
 	"\x15AUTH_METHOD_HOSTBASED\x10\x05\x12\x14\n" +
 	"\x10AUTH_METHOD_NONE\x10\x062Z\n" +
 	"\vTransporter\x12K\n" +
-	"\x04Beam\x12'.uplink.event.ssh.v1.SSHConnectionEvent\x1a\x16.google.protobuf.Empty\"\x00(\x01B5Z3github.com/ArchiMoebius/uplinkevent/ssh/v1;eventsshb\x06proto3"
+	"\x04Beam\x12'.uplink.event.ssh.v1.SSHConnectionEvent\x1a\x16.google.protobuf.Empty\"\x00(\x01B6Z4github.com/ArchiMoebius/uplink/event/ssh/v1;eventsshb\x06proto3"
 
 var (
 	file_v1_beam_proto_rawDescOnce sync.Once

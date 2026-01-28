@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	pb "github.com/ArchiMoebius/uplinkpkg/gen/v1"
+	pb "github.com/ArchiMoebius/uplink/pkg/gen/v1"
 )
 
 type BeamClient struct {
