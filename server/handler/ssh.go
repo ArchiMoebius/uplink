@@ -118,7 +118,7 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 	if len(event.ServiceUuid) != 16 {
 		return fmt.Errorf("invalid service UUID length: %d", len(event.ServiceUuid))
 	}
-	if len(event.Hassh) != 16 {
+	if len(event.Hassh) != 32 {
 		return fmt.Errorf("hassh is required")
 	}
 

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -19,6 +22,9 @@ import (
 	pb "github.com/ArchiMoebius/uplink/pkg/gen/v1"
 	"github.com/ArchiMoebius/uplink/server/handler"
 )
+
+//go:embed static
+var staticFiles embed.FS
 
 var (
 	upgrader = websocket.Upgrader{
@@ -641,7 +647,24 @@ func main() {
 			log.Fatalf("Failed to listen on gRPC port: %v", err)
 		}
 
-		grpcServer := grpc.NewServer()
+		// Configure keepalive enforcement
+		kaep := keepalive.EnforcementPolicy{
+			MinTime:             5 * time.Minute,
+			PermitWithoutStream: true,
+		}
+
+		kasp := keepalive.ServerParameters{
+			MaxConnectionIdle:     45 * time.Second,
+			MaxConnectionAge:      30 * time.Second,
+			MaxConnectionAgeGrace: 30 * time.Second,
+			Time:                  30 * time.Second,
+			Timeout:               10 * time.Second,
+		}
+
+		grpcServer := grpc.NewServer(
+			grpc.KeepaliveEnforcementPolicy(kaep),
+			grpc.KeepaliveParams(kasp),
+		)
 		pb.RegisterTransporterServer(grpcServer, server)
 
 		log.Println("gRPC server listening on :50051")
@@ -661,7 +684,12 @@ func main() {
 	api.HandleFunc("/bubblemap/{service_uuid}", server.getBubbleMapData).Methods("GET")
 	api.HandleFunc("/stats/{service_uuid}", server.getStats).Methods("GET")
 
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
+	// Serve embedded static files
+	staticFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatalf("Failed to create sub filesystem: %v", err)
+	}
+	r.PathPrefix("/").Handler(http.FileServer(http.FS(staticFS)))
 
 	httpHandler := enableCORS(r)
 

@@ -5,6 +5,24 @@ PROTO_FILES := $(shell find $(PROTO_DIR) -name "*.proto" ! -path "*/google/*")
 GOPATH_SRC := $(if $(GOPATH),$(GOPATH)/src,)
 PROTO_INCLUDES := -I$(PROTO_DIR) $(if $(GOPATH_SRC),-I$(GOPATH_SRC)) -I/usr/local/include -I/usr/include -I.
 
+VERSION=$(shell grep "VERSION = " cli/cmd/root.go | cut -d"\"" -f2 | tr -d '\n')
+BUILD=$(shell git rev-parse HEAD)
+BASEDIR=./dist
+DIR=${BASEDIR}/temp
+
+BUILD_UUID=$(shell cat /proc/sys/kernel/random/uuid)
+
+LDFLAGS=-ldflags "-s -w -X 'main.build=${BUILD}' -X 'github.com/archimoebius/fishler/app.ServiceUUIDString=${BUILD_UUID}' -buildid=${BUILD}"
+GCFLAGS=-gcflags=all=-trimpath=$(shell pwd)
+ASMFLAGS=-asmflags=all=-trimpath=$(shell pwd)
+
+GOFILES=`go list -buildvcs=false ./...`
+GOFILESNOTEST=`go list -buildvcs=false ./... | grep -v test`
+
+# Make Directory to store executables
+$(shell mkdir -p ${DIR})
+
+
 PROTOC := protoc
 PROTOC_GEN_GO := protoc-gen-go
 PROTOC_GEN_GO_GRPC := protoc-gen-go-grpc
@@ -18,7 +36,7 @@ COLOR_GREEN := \033[32m
 COLOR_YELLOW := \033[33m
 
 .PHONY: all
-all: check-tools generate
+all: check-tools generate linux
 
 .PHONY: help
 help:
@@ -104,3 +122,6 @@ format:
 		find $(PROTO_DIR) -name "*.proto" -exec clang-format -i {} \; || \
 		echo "$(COLOR_YELLOW)clang-format not found, skipping format$(COLOR_RESET)"
 	@echo "$(COLOR_GREEN)✓ Format complete$(COLOR_RESET)"
+
+linux:
+	@env CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath ${LDFLAGS} ${GCFLAGS} ${ASMFLAGS} -o ${DIR}/uplink-server-linux_amd64 server/main/main.go server/main/geoip.go
