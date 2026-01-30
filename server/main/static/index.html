@@ -298,7 +298,7 @@
 
         #chart {
             width: 100%;
-            min-height: 500px;
+            min-height: 800px;
             position: relative;
         }
 
@@ -680,36 +680,36 @@
 
         <div class="controls">
             <div class="controls-grid">
-            <div class="control-group">
-                <label for="serviceSelect">Service UUID</label>
-                <select id="serviceSelect">
-                    <option value="">Loading services...</option>
-                </select>
-            </div>
+                <div class="control-group">
+                    <label for="serviceSelect">Service UUID</label>
+                    <select id="serviceSelect">
+                        <option value="">Loading services...</option>
+                    </select>
+                </div>
 
-            <div class="control-group">
-                <label for="timeRange">Time Range</label>
-                <select id="timeRange">
-                    <option value="1">Last 1 Hour</option>
-                    <option value="6">Last 6 Hours</option>
-                    <option value="12">Last 12 Hours</option>
-                    <option value="24" selected>Last 24 Hours</option>
-                    <option value="48">Last 2 Days</option>
-                    <option value="168">Last 7 Days</option>
-                    <option value="720">Last 30 Days</option>
-                </select>
-            </div>
+                <div class="control-group">
+                    <label for="timeRange">Time Range</label>
+                    <select id="timeRange">
+                        <option value="1">Last 1 Hour</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="12">Last 12 Hours</option>
+                        <option value="24" selected>Last 24 Hours</option>
+                        <option value="48">Last 2 Days</option>
+                        <option value="168">Last 7 Days</option>
+                        <option value="720">Last 30 Days</option>
+                    </select>
+                </div>
 
-            <div class="control-group">
-                <label for="vizType">Visualization Type</label>
-                <select id="vizType">
-                    <option value="heatmap" selected>Heatmap</option>
-                    <option value="sankey">Sankey Diagram</option>
-                    <option value="bubblemap">Bubble Map (Geo)</option>
-                    <option value="table">Table/Grid View</option>
-                </select>
+                <div class="control-group">
+                    <label for="vizType">Visualization Type</label>
+                    <select id="vizType">
+                        <option value="heatmap" selected>Heatmap</option>
+                        <option value="sankey">Sankey Diagram</option>
+                        <option value="bubblemap">Bubble Map (Geo)</option>
+                        <option value="table">Table/Grid View</option>
+                    </select>
+                </div>
             </div>
-        </div>
 
             <div class="controls-grid">
 
@@ -803,7 +803,7 @@
         let currentSankeySource = 'source_ip';
         let currentSankeyMiddle = 'username';
         let currentSankeyTarget = 'password';
-        let currentVizType = 'chart';
+        let currentVizType = 'heatmap';
         let rawEventData = [];
 
         // Table state
@@ -812,7 +812,7 @@
         let currentSortColumn = null;
         let currentSortOrder = 'asc';
         let currentPage = 1;
-        let rowsPerPage = 50;
+        let rowsPerPage = 10;
         let searchQuery = '';
 
         // Initialize WebSocket
@@ -1160,7 +1160,7 @@
                     })
                     .text(d => {
                         const val = d[col];
-                        if (val === null || val === undefined) return '—';
+                        if (val === null || val === undefined || val === '') return '—';
                         if (col === 'timestamp' || col === 'created_at') {
                             return new Date(val).toLocaleString();
                         }
@@ -1245,15 +1245,37 @@
             const xValues = [...new Set(data.map(d => d.source_ip))].sort();
             const yValues = [...new Set(data.map(d => d.username))].sort();
 
-            const margin = { top: 80, right: 200, bottom: 100, left: 150 };
-            const cellSize = 50;
-            const width = Math.max(800, xValues.length * cellSize + margin.left + margin.right);
-            const height = yValues.length * cellSize + margin.top + margin.bottom;
+            let yValuesWidth = 100;
+
+            yValues.map(e => {
+                yValuesWidth = Math.max(yValuesWidth, e.length * 9.3)
+            });
+
+            // Get container dimensions
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = Math.max(800, containerRect.height);
+
+            const margin = { top: 20, right: 20, bottom: 10, left: yValuesWidth };
+
+            // Calculate available space for the chart
+            const availableWidth = containerWidth - margin.left - margin.right;
+            const availableHeight = containerHeight - margin.top - margin.bottom;
+
+            // Calculate cell size based on available space
+            const cellWidth = Math.min(50, availableWidth / xValues.length);
+            const cellHeight = Math.min(50, availableHeight / yValues.length);
+            const cellSize = Math.min(cellWidth, cellHeight);
+
+            const width = containerWidth;
+            const height = Math.max(containerHeight, yValues.length * cellSize + margin.top + margin.bottom);
 
             const svg = d3.select('#chart')
                 .append('svg')
-                .attr('width', width)
-                .attr('height', height);
+                .attr('width', '100%')
+                .attr('height', height)
+                .attr('viewBox', `0 0 ${width} ${height}`)
+                .attr('preserveAspectRatio', 'xMidYMid meet');
 
             const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -1316,7 +1338,7 @@
                 .call(d3.axisLeft(yScale));
 
             const legendWidth = 20;
-            const legendHeight = 200;
+            const legendHeight = availableHeight / 2;
             const legendX = xValues.length * cellSize + 40;
             const legendY = 0;
 
@@ -1368,20 +1390,27 @@
             const container = document.getElementById('chart');
             container.innerHTML = '';
 
-            const margin = { top: 20, right: 200, bottom: 20, left: 20 };
-            const width = 1400 - margin.left - margin.right;
-            const height = 700 - margin.top - margin.bottom;
+            // Get container dimensions
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = Math.max(800, containerRect.height);
+
+            const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+            const width = containerWidth - margin.left - margin.right;
+            const height = containerHeight - margin.top - margin.bottom;
 
             const svg = d3.select('#chart')
                 .append('svg')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom);
+                .attr('width', '100%')
+                .attr('height', containerHeight)
+                .attr('viewBox', `0 0 ${containerWidth} ${containerHeight}`)
+                .attr('preserveAspectRatio', 'xMidYMid meet');
 
             const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
             const projection = d3.geoNaturalEarth1()
-                .scale(200)
+                .scale(Math.min(width, height) / 3)
                 .translate([width / 2, height / 2]);
 
             const path = d3.geoPath().projection(projection);
@@ -1459,8 +1488,8 @@
                 .attr('r', d => sizeScale(d.count));
 
             const legendWidth = 20;
-            const legendHeight = 200;
-            const legendX = width + 40;
+            const legendHeight = height - 80;
+            const legendX = width - 80;
             const legendY = 50;
 
             const legendScale = d3.scaleLinear()
@@ -1511,14 +1540,21 @@
             const container = document.getElementById('chart');
             container.innerHTML = '';
 
-            const margin = { top: 40, right: 200, bottom: 40, left: 200 };
-            const width = 1400 - margin.left - margin.right;
-            const height = 700 - margin.top - margin.bottom;
+            // Get container dimensions
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = Math.max(800, containerRect.height);
+
+            const margin = { top: 40, right: 100, bottom: 40, left: 100 };
+            const width = containerWidth - margin.left - margin.right;
+            const height = containerHeight - margin.top - margin.bottom;
 
             const svg = d3.select('#chart')
                 .append('svg')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom);
+                .attr('width', '100%')
+                .attr('height', containerHeight)
+                .attr('viewBox', `0 0 ${containerWidth} ${containerHeight}`)
+                .attr('preserveAspectRatio', 'xMidYMid meet');
 
             const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -1745,7 +1781,7 @@
                     currentYAxis = otherOption.value;
                 }
             }
-            if (currentService && currentVizType === 'chart') {
+            if (currentService && currentVizType === 'heatmap') {
                 loadVisualizationData();
             }
         });
@@ -1761,7 +1797,7 @@
                     currentXAxis = otherOption.value;
                 }
             }
-            if (currentService && currentVizType === 'chart') {
+            if (currentService && currentVizType === 'heatmap') {
                 loadVisualizationData();
             }
         });

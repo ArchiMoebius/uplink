@@ -823,7 +823,6 @@ func main() {
 			log.Fatalf("Failed to listen on gRPC port: %v", err)
 		}
 
-		// Configure keepalive enforcement
 		kaep := keepalive.EnforcementPolicy{
 			MinTime:             5 * time.Minute,
 			PermitWithoutStream: true,
@@ -860,7 +859,6 @@ func main() {
 	api.HandleFunc("/bubblemap/{service_uuid}", server.getBubbleMapData).Methods("GET")
 	api.HandleFunc("/stats/{service_uuid}", server.getStats).Methods("GET")
 
-	// Serve embedded static files
 	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
 		log.Fatalf("Failed to create sub filesystem: %v", err)
