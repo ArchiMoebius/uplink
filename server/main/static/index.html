@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700&display=swap');
-        
+
         :root {
             --bg-primary: #0a0e27;
             --bg-secondary: #151b3d;
@@ -23,13 +24,13 @@
             --text-secondary: #8892b0;
             --border-color: #2d3561;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Outfit', sans-serif;
             background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1444 100%);
@@ -37,7 +38,7 @@
             min-height: 100vh;
             overflow-x: hidden;
         }
-        
+
         /* Animated background grid */
         body::before {
             content: '';
@@ -46,20 +47,24 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
-                linear-gradient(var(--border-color) 1px, transparent 1px),
+            background-image: linear-gradient(var(--border-color) 1px, transparent 1px),
                 linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
             background-size: 50px 50px;
             opacity: 0.1;
             z-index: 0;
             animation: gridMove 20s linear infinite;
         }
-        
+
         @keyframes gridMove {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(50px, 50px);
+            }
         }
-        
+
         .container {
             max-width: 1800px;
             margin: 0 auto;
@@ -67,7 +72,7 @@
             position: relative;
             z-index: 1;
         }
-        
+
         header {
             margin-bottom: 3rem;
             animation: slideDown 0.6s ease-out;
@@ -75,22 +80,23 @@
             justify-content: space-between;
             align-items: flex-start;
         }
-        
+
         .header-content {
             flex: 1;
         }
-        
+
         @keyframes slideDown {
             from {
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         h1 {
             font-family: 'JetBrains Mono', monospace;
             font-size: 3rem;
@@ -102,13 +108,13 @@
             background-clip: text;
             letter-spacing: -0.02em;
         }
-        
+
         .subtitle {
             font-size: 1.1rem;
             color: var(--text-secondary);
             font-weight: 300;
         }
-        
+
         .controls {
             display: flex;
             gap: 2rem;
@@ -116,13 +122,13 @@
             flex-wrap: wrap;
             align-items: center;
         }
-        
+
         .control-group {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
-        
+
         .control-group label {
             font-size: 0.85rem;
             text-transform: uppercase;
@@ -130,7 +136,7 @@
             color: var(--text-secondary);
             font-weight: 500;
         }
-        
+
         select {
             background: var(--bg-card);
             border: 2px solid var(--border-color);
@@ -143,18 +149,18 @@
             transition: all 0.3s ease;
             min-width: 250px;
         }
-        
+
         select:hover {
             border-color: var(--accent-primary);
             box-shadow: 0 0 20px rgba(0, 217, 255, 0.1);
         }
-        
+
         select:focus {
             outline: none;
             border-color: var(--accent-primary);
             box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);
         }
-        
+
         .status-indicator {
             display: flex;
             align-items: center;
@@ -168,7 +174,7 @@
             white-space: nowrap;
             margin-top: 0.5rem;
         }
-        
+
         .status-dot {
             width: 10px;
             height: 10px;
@@ -176,35 +182,53 @@
             background: var(--accent-danger);
             animation: pulse 2s ease-in-out infinite;
         }
-        
+
         .status-dot.connected {
             background: var(--accent-success);
         }
-        
+
         @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.1); }
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
         }
-        
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 3rem;
+            margin-bottom: 1rem;
             animation: fadeIn 0.8s ease-out 0.2s both;
         }
-        
+
+        .controls-grid {
+            display: grid;
+            width: 100%;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         .stat-card {
             background: var(--bg-card);
             padding: 1.5rem;
@@ -214,7 +238,7 @@
             overflow: hidden;
             transition: all 0.3s ease;
         }
-        
+
         .stat-card::before {
             content: '';
             position: absolute;
@@ -224,13 +248,13 @@
             height: 3px;
             background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
         }
-        
+
         .stat-card:hover {
             transform: translateY(-5px);
             border-color: var(--accent-primary);
             box-shadow: 0 10px 40px rgba(0, 217, 255, 0.15);
         }
-        
+
         .stat-label {
             font-size: 0.85rem;
             color: var(--text-secondary);
@@ -238,14 +262,14 @@
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
         }
-        
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: 700;
             font-family: 'JetBrains Mono', monospace;
             color: var(--accent-primary);
         }
-        
+
         .visualization-card {
             background: var(--bg-card);
             padding: 2rem;
@@ -254,7 +278,7 @@
             margin-bottom: 2rem;
             animation: fadeIn 1s ease-out 0.4s both;
         }
-        
+
         .visualization-card h2 {
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
@@ -263,7 +287,7 @@
             align-items: center;
             gap: 0.75rem;
         }
-        
+
         .visualization-card h2::before {
             content: '';
             width: 4px;
@@ -271,13 +295,13 @@
             background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
             border-radius: 2px;
         }
-        
-        #heatmap {
+
+        #chart {
             width: 100%;
             min-height: 500px;
             position: relative;
         }
-        
+
         .loading {
             display: flex;
             justify-content: center;
@@ -286,7 +310,7 @@
             font-family: 'JetBrains Mono', monospace;
             color: var(--text-secondary);
         }
-        
+
         .loading::after {
             content: '';
             width: 40px;
@@ -297,11 +321,13 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
-        
+
         .tooltip {
             position: absolute;
             background: rgba(26, 33, 64, 0.98);
@@ -317,21 +343,21 @@
             backdrop-filter: blur(10px);
             z-index: 1000;
         }
-        
+
         .tooltip.show {
             opacity: 1;
         }
-        
+
         .tooltip-label {
             color: var(--text-secondary);
             margin-bottom: 0.25rem;
         }
-        
+
         .tooltip-value {
             color: var(--accent-primary);
             font-weight: 700;
         }
-        
+
         /* Heatmap specific styles */
         .cell {
             stroke: var(--bg-primary);
@@ -339,36 +365,36 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .cell:hover {
             stroke: var(--accent-primary);
             stroke-width: 3;
             filter: brightness(1.2);
         }
-        
+
         .axis text {
             fill: var(--text-secondary);
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.75rem;
         }
-        
+
         .axis line,
         .axis path {
             stroke: var(--border-color);
         }
-        
+
         .legend-title {
             fill: var(--text-primary);
             font-weight: 500;
             font-size: 0.85rem;
         }
-        
+
         .legend-label {
             fill: var(--text-secondary);
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.75rem;
         }
-        
+
         /* Bubble map specific styles */
         .bubble {
             stroke: var(--bg-primary);
@@ -376,30 +402,30 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .bubble:hover {
             stroke: var(--accent-primary);
             stroke-width: 3;
             filter: brightness(1.3);
         }
-        
+
         .map-background {
             fill: var(--bg-secondary);
             stroke: var(--border-color);
             stroke-width: 1;
         }
-        
+
         .country {
             fill: var(--bg-card);
             stroke: var(--border-color);
             stroke-width: 0.5;
             transition: fill 0.2s;
         }
-        
+
         .country:hover {
             fill: #252d52;
         }
-        
+
         /* Sankey diagram styles */
         .sankey-node rect {
             fill-opacity: 0.9;
@@ -407,41 +433,218 @@
             stroke-width: 2;
             cursor: pointer;
         }
-        
+
         .sankey-node:hover rect {
             fill-opacity: 1;
             stroke: var(--accent-primary);
             stroke-width: 3;
         }
-        
+
         .sankey-node text {
             fill: var(--text-primary);
             font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
             pointer-events: none;
         }
-        
+
         .sankey-link {
             fill: none;
             stroke-opacity: 0.3;
             cursor: pointer;
         }
-        
+
         .sankey-link:hover {
             stroke-opacity: 0.6;
         }
-        
+
+        /* Table/Grid view styles */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+
+        .table-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            background: var(--bg-card);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-primary);
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        th:hover {
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        th.sortable::after {
+            content: '⇅';
+            margin-left: 0.5rem;
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        th.sorted-asc::after {
+            content: '↑';
+            color: var(--accent-primary);
+            opacity: 1;
+        }
+
+        th.sorted-desc::after {
+            content: '↓';
+            color: var(--accent-primary);
+            opacity: 1;
+        }
+
+        td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            transition: background 0.2s ease;
+        }
+
+        tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tbody tr:nth-child(even):hover {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .cell-ip {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .cell-username {
+            color: var(--accent-secondary);
+        }
+
+        .cell-timestamp {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .cell-count {
+            color: var(--accent-success);
+            font-weight: 700;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .pagination-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            border-color: var(--accent-primary);
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+            font-weight: 700;
+        }
+
+        .pagination-info {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
         /* Hide axis controls when not applicable */
         .axis-controls {
             display: flex;
             gap: 2rem;
         }
-        
+
         .axis-controls.hidden {
             display: none;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -454,104 +657,7 @@
                 <span id="wsStatusText">Disconnected</span>
             </div>
         </header>
-        
-        <div class="controls">
-            <div class="control-group">
-                <label for="serviceSelect">Service UUID</label>
-                <select id="serviceSelect">
-                    <option value="">Loading services...</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="timeRange">Time Range</label>
-                <select id="timeRange">
-                    <option value="1">Last 1 Hour</option>
-                    <option value="6">Last 6 Hours</option>
-                    <option value="12">Last 12 Hours</option>
-                    <option value="24" selected>Last 24 Hours</option>
-                    <option value="48">Last 2 Days</option>
-                    <option value="168">Last 7 Days</option>
-                    <option value="720">Last 30 Days</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="vizType">Visualization Type</label>
-                <select id="vizType">
-                    <option value="heatmap" selected>Heatmap</option>
-                    <option value="sankey">Sankey Diagram</option>
-                    <option value="bubblemap">Bubble Map (Geo)</option>
-                </select>
-            </div>
-            
-            <div class="axis-controls" id="heatmapControls">
-                <div class="control-group">
-                    <label for="xAxis">X-Axis</label>
-                    <select id="xAxis">
-                        <option value="source_ip" selected>IP Address</option>
-                        <option value="username">Username</option>
-                        <option value="password">Password</option>
-                        <option value="source_port">Source Port</option>
-                        <option value="auth_methods">Auth Methods</option>
-                        <option value="hassh">HASSH</option>
-                        <option value="ssh_client_name">Client Name</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label for="yAxis">Y-Axis</label>
-                    <select id="yAxis">
-                        <option value="username" selected>Username</option>
-                        <option value="source_ip">IP Address</option>
-                        <option value="password">Password</option>
-                        <option value="source_port">Source Port</option>
-                        <option value="auth_methods">Auth Methods</option>
-                        <option value="hassh">HASSH</option>
-                        <option value="ssh_client_name">Client Name</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="axis-controls hidden" id="sankeyControls">
-                <div class="control-group">
-                    <label for="sankeySource">Source</label>
-                    <select id="sankeySource">
-                        <option value="source_ip" selected>IP Address</option>
-                        <option value="username">Username</option>
-                        <option value="password">Password</option>
-                        <option value="source_port">Source Port</option>
-                        <option value="hassh">HASSH</option>
-                        <option value="ssh_client_name">Client Name</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label for="sankeyMiddle">Middle</label>
-                    <select id="sankeyMiddle">
-                        <option value="username" selected>Username</option>
-                        <option value="source_ip">IP Address</option>
-                        <option value="password">Password</option>
-                        <option value="source_port">Source Port</option>
-                        <option value="hassh">HASSH</option>
-                        <option value="ssh_client_name">Client Name</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label for="sankeyTarget">Target</label>
-                    <select id="sankeyTarget">
-                        <option value="password" selected>Password</option>
-                        <option value="username">Username</option>
-                        <option value="source_ip">IP Address</option>
-                        <option value="source_port">Source Port</option>
-                        <option value="hassh">HASSH</option>
-                        <option value="ssh_client_name">Client Name</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
+
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-label">Total Events</div>
@@ -570,21 +676,125 @@
                 <div class="stat-value" id="statUniqueFingerprints">—</div>
             </div>
         </div>
-        
+
+
+        <div class="controls">
+            <div class="controls-grid">
+            <div class="control-group">
+                <label for="serviceSelect">Service UUID</label>
+                <select id="serviceSelect">
+                    <option value="">Loading services...</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="timeRange">Time Range</label>
+                <select id="timeRange">
+                    <option value="1">Last 1 Hour</option>
+                    <option value="6">Last 6 Hours</option>
+                    <option value="12">Last 12 Hours</option>
+                    <option value="24" selected>Last 24 Hours</option>
+                    <option value="48">Last 2 Days</option>
+                    <option value="168">Last 7 Days</option>
+                    <option value="720">Last 30 Days</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="vizType">Visualization Type</label>
+                <select id="vizType">
+                    <option value="heatmap" selected>Heatmap</option>
+                    <option value="sankey">Sankey Diagram</option>
+                    <option value="bubblemap">Bubble Map (Geo)</option>
+                    <option value="table">Table/Grid View</option>
+                </select>
+            </div>
+        </div>
+
+            <div class="controls-grid">
+
+                <div class="axis-controls" id="heatmapControls">
+                    <div class="control-group">
+                        <label for="xAxis">X-Axis</label>
+                        <select id="xAxis">
+                            <option value="source_ip" selected>IP Address</option>
+                            <option value="username">Username</option>
+                            <option value="password">Password</option>
+                            <option value="source_port">Source Port</option>
+                            <option value="auth_methods">Auth Methods</option>
+                            <option value="hassh">HASSH</option>
+                            <option value="ssh_client_name">Client Name</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="yAxis">Y-Axis</label>
+                        <select id="yAxis">
+                            <option value="username" selected>Username</option>
+                            <option value="source_ip">IP Address</option>
+                            <option value="password">Password</option>
+                            <option value="source_port">Source Port</option>
+                            <option value="auth_methods">Auth Methods</option>
+                            <option value="hassh">HASSH</option>
+                            <option value="ssh_client_name">Client Name</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="axis-controls hidden" id="sankeyControls">
+                    <div class="control-group">
+                        <label for="sankeySource">Source</label>
+                        <select id="sankeySource">
+                            <option value="source_ip" selected>IP Address</option>
+                            <option value="username">Username</option>
+                            <option value="password">Password</option>
+                            <option value="source_port">Source Port</option>
+                            <option value="hassh">HASSH</option>
+                            <option value="ssh_client_name">Client Name</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="sankeyMiddle">Middle</label>
+                        <select id="sankeyMiddle">
+                            <option value="username" selected>Username</option>
+                            <option value="source_ip">IP Address</option>
+                            <option value="password">Password</option>
+                            <option value="source_port">Source Port</option>
+                            <option value="hassh">HASSH</option>
+                            <option value="ssh_client_name">Client Name</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="sankeyTarget">Target</label>
+                        <select id="sankeyTarget">
+                            <option value="password" selected>Password</option>
+                            <option value="username">Username</option>
+                            <option value="source_ip">IP Address</option>
+                            <option value="source_port">Source Port</option>
+                            <option value="hassh">HASSH</option>
+                            <option value="ssh_client_name">Client Name</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="visualization-card">
             <h2 id="vizTitle">Username × IP Address Heatmap</h2>
-            <div id="heatmap">
+            <div id="chart">
                 <div class="loading">Initializing visualization</div>
             </div>
         </div>
     </div>
-    
+
     <div class="tooltip" id="tooltip"></div>
 
     <script>
         const API_BASE = 'http://localhost:8080/api';
         const WS_URL = 'ws://localhost:8080/ws';
-        
+
         let ws = null;
         let currentService = null;
         let currentTimeRange = 24;
@@ -593,13 +803,22 @@
         let currentSankeySource = 'source_ip';
         let currentSankeyMiddle = 'username';
         let currentSankeyTarget = 'password';
-        let currentVizType = 'heatmap';
+        let currentVizType = 'chart';
         let rawEventData = [];
-        
+
+        // Table state
+        let tableData = [];
+        let filteredTableData = [];
+        let currentSortColumn = null;
+        let currentSortOrder = 'asc';
+        let currentPage = 1;
+        let rowsPerPage = 50;
+        let searchQuery = '';
+
         // Initialize WebSocket
         function initWebSocket() {
             ws = new WebSocket(WS_URL);
-            
+
             ws.onopen = () => {
                 console.log('WebSocket connected');
                 const statusDot = document.querySelector('.status-dot');
@@ -608,7 +827,7 @@
                 if (statusText) statusText.textContent = 'Connected';
                 document.title = '🟢 SSH Event Monitor - Connected';
             };
-            
+
             ws.onclose = () => {
                 console.log('WebSocket disconnected');
                 const statusDot = document.querySelector('.status-dot');
@@ -616,24 +835,20 @@
                 if (statusDot) statusDot.classList.remove('connected');
                 if (statusText) statusText.textContent = 'Disconnected';
                 document.title = '🔴 SSH Event Monitor - Disconnected';
-                
                 // Reconnect after 3 seconds
                 setTimeout(initWebSocket, 3000);
             };
-            
+
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 console.log('WebSocket message:', data);
-                
                 if (data.type === 'connected') {
-                    // Connection confirmation from server
                     const statusDot = document.querySelector('.status-dot');
                     const statusText = document.querySelector('.status-indicator span:last-child');
                     if (statusDot) statusDot.classList.add('connected');
                     if (statusText) statusText.textContent = 'Connected';
                     document.title = '🟢 SSH Event Monitor - Connected';
                 } else if (data.type === 'new_event') {
-                    // Refresh data if it's for the current service
                     if (currentService && data.service_uuid === currentService) {
                         console.log('New event received, refreshing visualization...');
                         loadStats();
@@ -641,7 +856,7 @@
                     }
                 }
             };
-            
+
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
                 const statusDot = document.querySelector('.status-dot');
@@ -651,23 +866,23 @@
                 document.title = '⚠️ SSH Event Monitor - Error';
             };
         }
-        
+
         // Load services list
         async function loadServices() {
             try {
                 const response = await fetch(`${API_BASE}/services`);
                 const services = await response.json();
-                
+
                 const select = document.getElementById('serviceSelect');
                 select.innerHTML = '<option value="">Select a service...</option>';
-                
+
                 services.forEach(service => {
                     const option = document.createElement('option');
                     option.value = service.uuid;
                     option.textContent = `${service.uuid} (${new Date(service.created_at).toLocaleString()})`;
                     select.appendChild(option);
                 });
-                
+
                 // Auto-select first service if available
                 if (services.length > 0) {
                     select.value = services[0].uuid;
@@ -679,15 +894,15 @@
                 console.error('Error loading services:', error);
             }
         }
-        
+
         // Load statistics
         async function loadStats() {
             if (!currentService) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/stats/${currentService}?hours=${currentTimeRange}`);
                 const stats = await response.json();
-                
+
                 document.getElementById('statTotalEvents').textContent = stats.total_events.toLocaleString();
                 document.getElementById('statUniqueIPs').textContent = stats.unique_ips.toLocaleString();
                 document.getElementById('statUniqueUsernames').textContent = stats.unique_usernames.toLocaleString();
@@ -696,18 +911,22 @@
                 console.error('Error loading stats:', error);
             }
         }
-        
+
         // Load visualization data based on current type
         async function loadVisualizationData() {
             if (!currentService) return;
-            
-            const container = document.getElementById('heatmap');
+
+            const container = document.getElementById('chart');
             container.innerHTML = '<div class="loading">Loading data</div>';
-            
+
             try {
                 let endpoint, response;
-                
-                if (currentVizType === 'bubblemap') {
+
+                if (currentVizType === 'table') {
+                    // For table view, fetch raw events
+                    endpoint = `${API_BASE}/events/${currentService}?hours=${currentTimeRange}`;
+                    response = await fetch(endpoint);
+                } else if (currentVizType === 'bubblemap') {
                     endpoint = `${API_BASE}/bubblemap/${currentService}?hours=${currentTimeRange}`;
                     response = await fetch(endpoint);
                 } else if (currentVizType === 'sankey') {
@@ -717,15 +936,15 @@
                     endpoint = `${API_BASE}/heatmap/${currentService}?hours=${currentTimeRange}&x_axis=${currentXAxis}&y_axis=${currentYAxis}`;
                     response = await fetch(endpoint);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (!data || data.length === 0) {
                     container.innerHTML = '<div class="loading">No data available for selected time range</div>';
                     rawEventData = [];
                     return;
                 }
-                
+
                 rawEventData = data;
                 renderVisualization();
             } catch (error) {
@@ -734,13 +953,17 @@
                 rawEventData = [];
             }
         }
-        
+
         // Update visualization title and controls visibility
         function updateVizTitle() {
             const heatmapControls = document.getElementById('heatmapControls');
             const sankeyControls = document.getElementById('sankeyControls');
-            
-            if (currentVizType === 'bubblemap') {
+
+            if (currentVizType === 'table') {
+                document.getElementById('vizTitle').textContent = 'Event Data Table';
+                heatmapControls.classList.add('hidden');
+                sankeyControls.classList.add('hidden');
+            } else if (currentVizType === 'bubblemap') {
                 document.getElementById('vizTitle').textContent = 'Geographic Bubble Map - Attack Origins';
                 heatmapControls.classList.add('hidden');
                 sankeyControls.classList.add('hidden');
@@ -759,17 +982,19 @@
                 sankeyControls.classList.add('hidden');
             }
         }
-        
+
         // Render visualization based on current settings
         function renderVisualization() {
             if (rawEventData.length === 0) {
-                document.getElementById('heatmap').innerHTML = '<div class="loading">No data to visualize</div>';
+                document.getElementById('chart').innerHTML = '<div class="loading">No data to visualize</div>';
                 return;
             }
-            
+
             updateVizTitle();
-            
-            if (currentVizType === 'bubblemap') {
+
+            if (currentVizType === 'table') {
+                renderTable(rawEventData);
+            } else if (currentVizType === 'bubblemap') {
                 renderBubbleMap(rawEventData);
             } else if (currentVizType === 'sankey') {
                 renderSankey(rawEventData);
@@ -777,61 +1002,286 @@
                 renderHeatmap(rawEventData);
             }
         }
-        
+
+        // Render D3.js Table/Grid View
+        function renderTable(data) {
+            const container = document.getElementById('chart');
+            container.innerHTML = '';
+
+            // Store the data
+            tableData = data;
+            filteredTableData = [...data];
+            currentPage = 1;
+
+            // Create container structure
+            const tableContainer = d3.select('#chart')
+                .append('div')
+                .attr('class', 'table-container');
+
+            // Add controls
+            const controlsDiv = d3.select('#chart')
+                .insert('div', ':first-child')
+                .attr('class', 'table-controls');
+
+            // Search box
+            controlsDiv.append('input')
+                .attr('type', 'text')
+                .attr('class', 'search-box')
+                .attr('placeholder', 'Search by IP, username, password, or any field...')
+                .on('input', function () {
+                    searchQuery = this.value.toLowerCase();
+                    filterTableData();
+                });
+
+            // Table info
+            const infoDiv = controlsDiv.append('div')
+                .attr('class', 'table-info');
+
+            // Determine columns based on data structure
+            const columns = data.length > 0 ? Object.keys(data[0]) : [];
+
+            // Create table
+            const table = tableContainer.append('table');
+
+            // Create header
+            const thead = table.append('thead');
+            const headerRow = thead.append('tr');
+
+            columns.forEach(col => {
+                const th = headerRow.append('th')
+                    .attr('class', 'sortable')
+                    .text(formatColumnName(col))
+                    .on('click', () => sortTable(col));
+            });
+
+            // Create body
+            const tbody = table.append('tbody');
+
+            // Initial render
+            updateTable();
+
+            // Create pagination
+            createPagination();
+        }
+
+        function formatColumnName(col) {
+            return col.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        function filterTableData() {
+            if (!searchQuery) {
+                filteredTableData = [...tableData];
+            } else {
+                filteredTableData = tableData.filter(row => {
+                    return Object.values(row).some(val => {
+                        if (val === null || val === undefined) return false;
+                        return String(val).toLowerCase().includes(searchQuery);
+                    });
+                });
+            }
+            currentPage = 1;
+            updateTable();
+            updatePagination();
+        }
+
+        function sortTable(column) {
+            if (currentSortColumn === column) {
+                // Toggle order
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortOrder = 'asc';
+            }
+
+            filteredTableData.sort((a, b) => {
+                const aVal = a[column];
+                const bVal = b[column];
+
+                // Handle null/undefined
+                if (aVal === null || aVal === undefined) return 1;
+                if (bVal === null || bVal === undefined) return -1;
+
+                // Numeric comparison
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+
+                // String comparison
+                const aStr = String(aVal).toLowerCase();
+                const bStr = String(bVal).toLowerCase();
+                if (currentSortOrder === 'asc') {
+                    return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
+                } else {
+                    return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
+                }
+            });
+
+            updateTable();
+        }
+
+        function updateTable() {
+            const columns = tableData.length > 0 ? Object.keys(tableData[0]) : [];
+            const tbody = d3.select('#chart tbody');
+
+            // Update header sort indicators
+            d3.selectAll('#chart th')
+                .classed('sorted-asc', false)
+                .classed('sorted-desc', false);
+
+            if (currentSortColumn) {
+                const colIndex = columns.indexOf(currentSortColumn);
+                d3.select(`#chart th:nth-child(${colIndex + 1})`)
+                    .classed(`sorted-${currentSortOrder}`, true);
+            }
+
+            // Calculate pagination
+            const startIdx = (currentPage - 1) * rowsPerPage;
+            const endIdx = Math.min(startIdx + rowsPerPage, filteredTableData.length);
+            const pageData = filteredTableData.slice(startIdx, endIdx);
+
+            // Clear existing rows
+            tbody.selectAll('tr').remove();
+
+            // Add rows with animation
+            const rows = tbody.selectAll('tr')
+                .data(pageData)
+                .enter()
+                .append('tr')
+                .style('opacity', 0);
+
+            columns.forEach(col => {
+                rows.append('td')
+                    .attr('class', d => {
+                        if (col === 'source_ip') return 'cell-ip';
+                        if (col === 'username') return 'cell-username';
+                        if (col === 'timestamp' || col === 'created_at') return 'cell-timestamp';
+                        if (col === 'count') return 'cell-count';
+                        return '';
+                    })
+                    .text(d => {
+                        const val = d[col];
+                        if (val === null || val === undefined) return '—';
+                        if (col === 'timestamp' || col === 'created_at') {
+                            return new Date(val).toLocaleString();
+                        }
+                        return val;
+                    });
+            });
+
+            // Animate rows
+            rows.transition()
+                .duration(300)
+                .delay((d, i) => i * 20)
+                .style('opacity', 1);
+
+            // Update info
+            updateTableInfo();
+        }
+
+        function updateTableInfo() {
+            const totalRows = filteredTableData.length;
+            const startIdx = (currentPage - 1) * rowsPerPage + 1;
+            const endIdx = Math.min(startIdx + rowsPerPage - 1, totalRows);
+
+            d3.select('.table-info')
+                .text(`Showing ${startIdx}-${endIdx} of ${totalRows} events${searchQuery ? ' (filtered)' : ''}`);
+        }
+
+        function createPagination() {
+            const paginationDiv = d3.select('#chart')
+                .append('div')
+                .attr('class', 'pagination');
+
+            paginationDiv.append('button')
+                .attr('class', 'pagination-btn')
+                .attr('id', 'prevPage')
+                .text('← Previous')
+                .on('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        updateTable();
+                        updatePagination();
+                    }
+                });
+
+            const pageInfo = paginationDiv.append('span')
+                .attr('class', 'pagination-info')
+                .attr('id', 'pageInfo');
+
+            paginationDiv.append('button')
+                .attr('class', 'pagination-btn')
+                .attr('id', 'nextPage')
+                .text('Next →')
+                .on('click', () => {
+                    const totalPages = Math.ceil(filteredTableData.length / rowsPerPage);
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        updateTable();
+                        updatePagination();
+                    }
+                });
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredTableData.length / rowsPerPage);
+
+            d3.select('#pageInfo')
+                .text(`Page ${currentPage} of ${totalPages}`);
+
+            d3.select('#prevPage')
+                .property('disabled', currentPage === 1);
+
+            d3.select('#nextPage')
+                .property('disabled', currentPage >= totalPages);
+        }
+
         // Render D3.js heatmap
         function renderHeatmap(data) {
-            const container = document.getElementById('heatmap');
+            const container = document.getElementById('chart');
             container.innerHTML = '';
-            
-            // API returns data with 'username' (y-axis) and 'source_ip' (x-axis) fields
-            // regardless of what actual fields they represent
+
             const xValues = [...new Set(data.map(d => d.source_ip))].sort();
             const yValues = [...new Set(data.map(d => d.username))].sort();
-            
-            // Dimensions
-            const margin = {top: 80, right: 200, bottom: 100, left: 150};
+
+            const margin = { top: 80, right: 200, bottom: 100, left: 150 };
             const cellSize = 50;
             const width = Math.max(800, xValues.length * cellSize + margin.left + margin.right);
             const height = yValues.length * cellSize + margin.top + margin.bottom;
-            
-            // Create SVG
-            const svg = d3.select('#heatmap')
+
+            const svg = d3.select('#chart')
                 .append('svg')
                 .attr('width', width)
                 .attr('height', height);
-            
+
             const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
-            
-            // Create scales
+
             const xScale = d3.scaleBand()
                 .domain(xValues)
                 .range([0, xValues.length * cellSize])
                 .padding(0.05);
-            
+
             const yScale = d3.scaleBand()
                 .domain(yValues)
                 .range([0, yValues.length * cellSize])
                 .padding(0.05);
-            
+
             const maxCount = d3.max(data, d => d.count);
-            
-            // Color scale with cyberpunk theme
+
             const colorScale = d3.scaleSequential()
                 .domain([0, maxCount])
                 .interpolator(d3.interpolateRgbBasis(['#1a2140', '#7b2cbf', '#ff006e', '#00d9ff']));
-            
-            // Create data map for quick lookup
+
             const dataMap = new Map();
             data.forEach(d => {
                 dataMap.set(`${d.username}-${d.source_ip}`, d.count);
             });
-            
-            // Create cells
+
             yValues.forEach((yValue, yIndex) => {
                 xValues.forEach((xValue, xIndex) => {
                     const count = dataMap.get(`${yValue}-${xValue}`) || 0;
-                    
                     if (count > 0) {
                         g.append('rect')
                             .attr('class', 'cell')
@@ -841,7 +1291,7 @@
                             .attr('height', yScale.bandwidth())
                             .attr('fill', colorScale(count))
                             .attr('opacity', 0)
-                            .on('mouseover', function(event) {
+                            .on('mouseover', function (event) {
                                 showTooltip(event, yValue, xValue, count);
                             })
                             .on('mouseout', hideTooltip)
@@ -852,8 +1302,7 @@
                     }
                 });
             });
-            
-            // X axis
+
             g.append('g')
                 .attr('class', 'axis')
                 .attr('transform', `translate(0,${yValues.length * cellSize})`)
@@ -861,30 +1310,27 @@
                 .selectAll('text')
                 .attr('transform', 'rotate(-45)')
                 .style('text-anchor', 'end');
-            
-            // Y axis
+
             g.append('g')
                 .attr('class', 'axis')
                 .call(d3.axisLeft(yScale));
-            
-            // Add legend
+
             const legendWidth = 20;
             const legendHeight = 200;
             const legendX = xValues.length * cellSize + 40;
             const legendY = 0;
-            
+
             const legendScale = d3.scaleLinear()
                 .domain([0, maxCount])
                 .range([legendHeight, 0]);
-            
+
             const legendAxis = d3.axisRight(legendScale)
                 .ticks(5)
                 .tickFormat(d => d.toLocaleString());
-            
+
             const legend = g.append('g')
                 .attr('transform', `translate(${legendX},${legendY})`);
-            
-            // Legend gradient
+
             const defs = svg.append('defs');
             const gradient = defs.append('linearGradient')
                 .attr('id', 'legend-gradient')
@@ -892,69 +1338,63 @@
                 .attr('y1', '100%')
                 .attr('x2', '0%')
                 .attr('y2', '0%');
-            
+
             gradient.selectAll('stop')
                 .data(d3.range(0, 1.01, 0.1))
                 .enter()
                 .append('stop')
                 .attr('offset', d => `${d * 100}%`)
                 .attr('stop-color', d => colorScale(d * maxCount));
-            
+
             legend.append('rect')
                 .attr('width', legendWidth)
                 .attr('height', legendHeight)
                 .style('fill', 'url(#legend-gradient)');
-            
+
             legend.append('g')
                 .attr('class', 'axis')
                 .attr('transform', `translate(${legendWidth},0)`)
                 .call(legendAxis);
-            
+
             legend.append('text')
                 .attr('class', 'legend-title')
                 .attr('x', 0)
                 .attr('y', -10)
                 .text('Attempts');
         }
-        
+
         // Render D3.js Bubble Map
         async function renderBubbleMap(data) {
-            const container = document.getElementById('heatmap');
+            const container = document.getElementById('chart');
             container.innerHTML = '';
-            
-            // Dimensions
-            const margin = {top: 20, right: 200, bottom: 20, left: 20};
+
+            const margin = { top: 20, right: 200, bottom: 20, left: 20 };
             const width = 1400 - margin.left - margin.right;
             const height = 700 - margin.top - margin.bottom;
-            
-            // Create SVG
-            const svg = d3.select('#heatmap')
+
+            const svg = d3.select('#chart')
                 .append('svg')
                 .attr('width', width + margin.left + margin.right)
                 .attr('height', height + margin.top + margin.bottom);
-            
+
             const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
-            
-            // Create projection
+
             const projection = d3.geoNaturalEarth1()
                 .scale(200)
                 .translate([width / 2, height / 2]);
-            
+
             const path = d3.geoPath().projection(projection);
-            
-            // Draw world map background
+
             g.append('rect')
                 .attr('class', 'map-background')
                 .attr('width', width)
                 .attr('height', height);
-            
-            // Load world map TopoJSON
+
             try {
                 const world = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
                 const countries = topojson.feature(world, world.objects.countries);
-                
-                // Draw countries
+
                 g.selectAll('.country')
                     .data(countries.features)
                     .enter()
@@ -964,19 +1404,16 @@
                     .style('fill', 'var(--bg-secondary)')
                     .style('stroke', 'var(--border-color)')
                     .style('stroke-width', 0.5);
-                    
             } catch (error) {
                 console.warn('Could not load world map, using sphere fallback:', error);
-                // Fallback to sphere if TopoJSON fails to load
                 g.append('path')
-                    .datum({type: 'Sphere'})
+                    .datum({ type: 'Sphere' })
                     .attr('class', 'country')
                     .attr('d', path)
                     .style('fill', 'var(--bg-secondary)')
                     .style('stroke', 'var(--border-color)');
             }
-            
-            // Draw graticule (grid lines)
+
             const graticule = d3.geoGraticule();
             g.append('path')
                 .datum(graticule)
@@ -985,19 +1422,16 @@
                 .style('stroke', 'var(--border-color)')
                 .style('stroke-width', 0.5)
                 .style('opacity', 0.3);
-            
-            // Scale for bubble size
+
             const maxCount = d3.max(data, d => d.count);
             const sizeScale = d3.scaleSqrt()
                 .domain([0, maxCount])
                 .range([3, 30]);
-            
-            // Color scale
+
             const colorScale = d3.scaleSequential()
                 .domain([0, maxCount])
                 .interpolator(d3.interpolateRgbBasis(['#7b2cbf', '#ff006e', '#00d9ff']));
-            
-            // Draw bubbles
+
             const bubbles = g.selectAll('.bubble')
                 .data(data)
                 .enter()
@@ -1014,35 +1448,32 @@
                 .attr('r', 0)
                 .attr('fill', d => colorScale(d.count))
                 .attr('opacity', 0.7)
-                .on('mouseover', function(event, d) {
+                .on('mouseover', function (event, d) {
                     showBubbleTooltip(event, d);
                 })
                 .on('mouseout', hideTooltip);
-            
-            // Animate bubbles
+
             bubbles.transition()
                 .duration(800)
                 .delay((d, i) => i * 20)
                 .attr('r', d => sizeScale(d.count));
-            
-            // Add legend
+
             const legendWidth = 20;
             const legendHeight = 200;
             const legendX = width + 40;
             const legendY = 50;
-            
+
             const legendScale = d3.scaleLinear()
                 .domain([0, maxCount])
                 .range([legendHeight, 0]);
-            
+
             const legendAxis = d3.axisRight(legendScale)
                 .ticks(5)
                 .tickFormat(d => d.toLocaleString());
-            
+
             const legend = g.append('g')
                 .attr('transform', `translate(${legendX},${legendY})`);
-            
-            // Legend gradient
+
             const defs = svg.append('defs');
             const gradient = defs.append('linearGradient')
                 .attr('id', 'bubble-legend-gradient')
@@ -1050,57 +1481,52 @@
                 .attr('y1', '100%')
                 .attr('x2', '0%')
                 .attr('y2', '0%');
-            
+
             gradient.selectAll('stop')
                 .data(d3.range(0, 1.01, 0.1))
                 .enter()
                 .append('stop')
                 .attr('offset', d => `${d * 100}%`)
                 .attr('stop-color', d => colorScale(d * maxCount));
-            
+
             legend.append('rect')
                 .attr('width', legendWidth)
                 .attr('height', legendHeight)
                 .style('fill', 'url(#bubble-legend-gradient)');
-            
+
             legend.append('g')
                 .attr('class', 'axis')
                 .attr('transform', `translate(${legendWidth},0)`)
                 .call(legendAxis);
-            
+
             legend.append('text')
                 .attr('class', 'legend-title')
                 .attr('x', 0)
                 .attr('y', -10)
                 .text('Attempts');
         }
-        
+
         // Render D3.js Sankey Diagram
         function renderSankey(data) {
-            const container = document.getElementById('heatmap');
+            const container = document.getElementById('chart');
             container.innerHTML = '';
-            
-            // Dimensions
-            const margin = {top: 40, right: 200, bottom: 40, left: 200};
+
+            const margin = { top: 40, right: 200, bottom: 40, left: 200 };
             const width = 1400 - margin.left - margin.right;
             const height = 700 - margin.top - margin.bottom;
-            
-            // Create SVG
-            const svg = d3.select('#heatmap')
+
+            const svg = d3.select('#chart')
                 .append('svg')
                 .attr('width', width + margin.left + margin.right)
                 .attr('height', height + margin.top + margin.bottom);
-            
+
             const g = svg.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
-            
-            // Process data into Sankey format
-            // Data comes as: {source: "value1", middle: "value2", target: "value3", count: N}
+
             const nodes = new Map();
             const links = [];
             let nodeIndex = 0;
-            
-            // Helper to get or create node
+
             const getNodeIndex = (name, layer) => {
                 const key = `${layer}:${name}`;
                 if (!nodes.has(key)) {
@@ -1113,54 +1539,46 @@
                 }
                 return nodes.get(key).index;
             };
-            
-            // Build nodes and links from data
+
             data.forEach(d => {
                 const sourceIdx = getNodeIndex(d.source, 0);
                 const middleIdx = getNodeIndex(d.middle, 1);
                 const targetIdx = getNodeIndex(d.target, 2);
-                
-                // Source -> Middle
+
                 links.push({
                     source: sourceIdx,
                     target: middleIdx,
                     value: d.count
                 });
-                
-                // Middle -> Target
+
                 links.push({
                     source: middleIdx,
                     target: targetIdx,
                     value: d.count
                 });
             });
-            
-            // Convert nodes map to array
+
             const nodeArray = Array.from(nodes.values()).map(n => ({
                 name: n.name,
                 layer: n.layer
             }));
-            
-            // Create Sankey layout
+
             const sankey = d3.sankey()
                 .nodeWidth(20)
                 .nodePadding(15)
                 .extent([[0, 0], [width, height]])
                 .nodeId(d => d.index)
                 .nodeAlign(d3.sankeyJustify);
-            
-            // Generate the sankey diagram
-            const {nodes: sankeyNodes, links: sankeyLinks} = sankey({
-                nodes: nodeArray.map((d, i) => ({...d, index: i})),
+
+            const { nodes: sankeyNodes, links: sankeyLinks } = sankey({
+                nodes: nodeArray.map((d, i) => ({ ...d, index: i })),
                 links: links
             });
-            
-            // Color scale for nodes by layer
+
             const colorScale = d3.scaleOrdinal()
                 .domain([0, 1, 2])
                 .range(['#00d9ff', '#7b2cbf', '#ff006e']);
-            
-            // Draw links
+
             g.append('g')
                 .selectAll('.sankey-link')
                 .data(sankeyLinks)
@@ -1170,12 +1588,11 @@
                 .attr('d', d3.sankeyLinkHorizontal())
                 .attr('stroke', d => colorScale(d.source.layer))
                 .attr('stroke-width', d => Math.max(1, d.width))
-                .on('mouseover', function(event, d) {
+                .on('mouseover', function (event, d) {
                     showSankeyTooltip(event, d);
                 })
                 .on('mouseout', hideTooltip);
-            
-            // Draw nodes
+
             const node = g.append('g')
                 .selectAll('.sankey-node')
                 .data(sankeyNodes)
@@ -1183,17 +1600,16 @@
                 .append('g')
                 .attr('class', 'sankey-node')
                 .attr('transform', d => `translate(${d.x0},${d.y0})`);
-            
+
             node.append('rect')
                 .attr('width', d => d.x1 - d.x0)
                 .attr('height', d => d.y1 - d.y0)
                 .attr('fill', d => colorScale(d.layer))
-                .on('mouseover', function(event, d) {
+                .on('mouseover', function (event, d) {
                     showSankeyNodeTooltip(event, d);
                 })
                 .on('mouseout', hideTooltip);
-            
-            // Add labels
+
             node.append('text')
                 .attr('x', d => (d.x1 - d.x0) / 2)
                 .attr('y', d => (d.y1 - d.y0) / 2)
@@ -1201,15 +1617,14 @@
                 .attr('text-anchor', 'middle')
                 .text(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name)
                 .style('font-size', '11px');
-            
-            // Add layer labels
+
             const layerLabels = [
-                {layer: 0, label: document.getElementById('sankeySource').selectedOptions[0].textContent},
-                {layer: 1, label: document.getElementById('sankeyMiddle').selectedOptions[0].textContent},
-                {layer: 2, label: document.getElementById('sankeyTarget').selectedOptions[0].textContent}
+                { layer: 0, label: document.getElementById('sankeySource').selectedOptions[0].textContent },
+                { layer: 1, label: document.getElementById('sankeyMiddle').selectedOptions[0].textContent },
+                { layer: 2, label: document.getElementById('sankeyTarget').selectedOptions[0].textContent }
             ];
-            
-            layerLabels.forEach(({layer, label}) => {
+
+            layerLabels.forEach(({ layer, label }) => {
                 const layerNodes = sankeyNodes.filter(n => n.layer === layer);
                 if (layerNodes.length > 0) {
                     const x = layer === 0 ? 0 : (layer === 1 ? width / 2 : width);
@@ -1225,45 +1640,39 @@
                 }
             });
         }
-        
+
         // Sankey tooltip functions
         function showSankeyTooltip(event, d) {
             const tooltip = document.getElementById('tooltip');
-            
             tooltip.innerHTML = `
                 <div class="tooltip-label">Flow:</div>
                 <div class="tooltip-value">${d.source.name} → ${d.target.name}</div>
                 <div class="tooltip-label" style="margin-top: 0.5rem;">Count:</div>
                 <div class="tooltip-value">${d.value.toLocaleString()}</div>
             `;
-            
             tooltip.style.left = (event.pageX + 15) + 'px';
             tooltip.style.top = (event.pageY - 15) + 'px';
             tooltip.classList.add('show');
         }
-        
+
         function showSankeyNodeTooltip(event, d) {
             const tooltip = document.getElementById('tooltip');
-            
             const totalValue = (d.sourceLinks || []).reduce((sum, l) => sum + l.value, 0) +
-                             (d.targetLinks || []).reduce((sum, l) => sum + l.value, 0);
-            
+                (d.targetLinks || []).reduce((sum, l) => sum + l.value, 0);
             tooltip.innerHTML = `
                 <div class="tooltip-label">Node:</div>
                 <div class="tooltip-value">${d.name}</div>
                 <div class="tooltip-label" style="margin-top: 0.5rem;">Total Flow:</div>
                 <div class="tooltip-value">${(totalValue / 2).toLocaleString()}</div>
             `;
-            
             tooltip.style.left = (event.pageX + 15) + 'px';
             tooltip.style.top = (event.pageY - 15) + 'px';
             tooltip.classList.add('show');
         }
-        
+
         // Bubble tooltip functions
         function showBubbleTooltip(event, d) {
             const tooltip = document.getElementById('tooltip');
-            
             tooltip.innerHTML = `
                 <div class="tooltip-label">Username:</div>
                 <div class="tooltip-value">${d.username}</div>
@@ -1274,18 +1683,16 @@
                 <div class="tooltip-label" style="margin-top: 0.5rem;">Attempts:</div>
                 <div class="tooltip-value">${d.count.toLocaleString()}</div>
             `;
-            
             tooltip.style.left = (event.pageX + 15) + 'px';
             tooltip.style.top = (event.pageY - 15) + 'px';
             tooltip.classList.add('show');
         }
-        
+
         // Tooltip functions
         function showTooltip(event, yValue, xValue, count) {
             const tooltip = document.getElementById('tooltip');
             const yLabel = document.getElementById('yAxis').selectedOptions[0].textContent;
             const xLabel = document.getElementById('xAxis').selectedOptions[0].textContent;
-            
             tooltip.innerHTML = `
                 <div class="tooltip-label">${yLabel}:</div>
                 <div class="tooltip-value">${yValue}</div>
@@ -1294,16 +1701,15 @@
                 <div class="tooltip-label" style="margin-top: 0.5rem;">Count:</div>
                 <div class="tooltip-value">${count.toLocaleString()}</div>
             `;
-            
             tooltip.style.left = (event.pageX + 15) + 'px';
             tooltip.style.top = (event.pageY - 15) + 'px';
             tooltip.classList.add('show');
         }
-        
+
         function hideTooltip() {
             document.getElementById('tooltip').classList.remove('show');
         }
-        
+
         // Event listeners
         document.getElementById('serviceSelect').addEventListener('change', (e) => {
             currentService = e.target.value;
@@ -1312,7 +1718,7 @@
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('timeRange').addEventListener('change', (e) => {
             currentTimeRange = parseInt(e.target.value);
             if (currentService) {
@@ -1320,19 +1726,17 @@
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('vizType').addEventListener('change', (e) => {
             currentVizType = e.target.value;
             if (currentService) {
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('xAxis').addEventListener('change', (e) => {
             currentXAxis = e.target.value;
-            // Prevent same axis on both X and Y
             if (currentXAxis === currentYAxis) {
-                // Swap to another axis
                 const ySelect = document.getElementById('yAxis');
                 const options = Array.from(ySelect.options);
                 const otherOption = options.find(opt => opt.value !== currentXAxis);
@@ -1341,17 +1745,14 @@
                     currentYAxis = otherOption.value;
                 }
             }
-            // Reload data from server with new axes
-            if (currentService && currentVizType === 'heatmap') {
+            if (currentService && currentVizType === 'chart') {
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('yAxis').addEventListener('change', (e) => {
             currentYAxis = e.target.value;
-            // Prevent same axis on both X and Y
             if (currentYAxis === currentXAxis) {
-                // Swap to another axis
                 const xSelect = document.getElementById('xAxis');
                 const options = Array.from(xSelect.options);
                 const otherOption = options.find(opt => opt.value !== currentYAxis);
@@ -1360,15 +1761,13 @@
                     currentXAxis = otherOption.value;
                 }
             }
-            // Reload data from server with new axes
-            if (currentService && currentVizType === 'heatmap') {
+            if (currentService && currentVizType === 'chart') {
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('sankeySource').addEventListener('change', (e) => {
             currentSankeySource = e.target.value;
-            // Prevent duplicate fields
             if (currentSankeySource === currentSankeyMiddle) {
                 const options = Array.from(document.getElementById('sankeyMiddle').options);
                 const otherOption = options.find(opt => opt.value !== currentSankeySource && opt.value !== currentSankeyTarget);
@@ -1389,10 +1788,9 @@
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('sankeyMiddle').addEventListener('change', (e) => {
             currentSankeyMiddle = e.target.value;
-            // Prevent duplicate fields
             if (currentSankeyMiddle === currentSankeySource) {
                 const options = Array.from(document.getElementById('sankeySource').options);
                 const otherOption = options.find(opt => opt.value !== currentSankeyMiddle && opt.value !== currentSankeyTarget);
@@ -1413,10 +1811,9 @@
                 loadVisualizationData();
             }
         });
-        
+
         document.getElementById('sankeyTarget').addEventListener('change', (e) => {
             currentSankeyTarget = e.target.value;
-            // Prevent duplicate fields
             if (currentSankeyTarget === currentSankeySource) {
                 const options = Array.from(document.getElementById('sankeySource').options);
                 const otherOption = options.find(opt => opt.value !== currentSankeyTarget && opt.value !== currentSankeyMiddle);
@@ -1437,13 +1834,12 @@
                 loadVisualizationData();
             }
         });
-        
+
         // Initialize
         initWebSocket();
         loadServices();
-        
-        // Set initial title to match dropdown defaults
         updateVizTitle();
     </script>
 </body>
+
 </html>

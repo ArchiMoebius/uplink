@@ -74,6 +74,21 @@ type BubbleMapDataPoint struct {
 	Count     int64   `json:"count"`
 }
 
+// New structure for table view events
+type EventDataPoint struct {
+	ID              uint      `json:"id"`
+	Timestamp       time.Time `json:"timestamp"`
+	SourceIP        string    `json:"source_ip"`
+	SourcePort      int       `json:"source_port"`
+	Username        string    `json:"username"`
+	Password        string    `json:"password"`
+	SSHClientName   string    `json:"ssh_client_name"`
+	HASSH           string    `json:"hassh"`
+	AuthMethods     string    `json:"auth_methods"`
+	Country         string    `json:"country"`
+	City            string    `json:"city"`
+}
+
 func NewServer(db *gorm.DB, eventHandler *handler.SSHEventHandler, geoIP *GeoIPService) *Server {
 	return &Server{
 		db:           db,
@@ -197,6 +212,163 @@ func (s *Server) getServices(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// GET /api/events/{service_uuid}?hours=24&limit=1000 - Get raw events for table view
+func (s *Server) getEvents(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	serviceUUID := vars["service_uuid"]
+
+	// Parse time range query parameter (default 24 hours)
+	hours := 24
+	if hoursParam := r.URL.Query().Get("hours"); hoursParam != "" {
+		var err error
+		if _, err = fmt.Sscanf(hoursParam, "%d", &hours); err != nil {
+			hours = 24
+		}
+	}
+
+	// Parse limit parameter (default 1000, max 10000)
+	limit := 1000
+	if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
+		var err error
+		if _, err = fmt.Sscanf(limitParam, "%d", &limit); err != nil {
+			limit = 1000
+		}
+	}
+	if limit > 10000 {
+		limit = 10000
+	}
+
+	timeRange := time.Now().Add(-time.Duration(hours) * time.Hour)
+
+	// Query for raw events with all relevant fields
+	type QueryResult struct {
+		ID            uint      `gorm:"column:id"`
+		Timestamp     time.Time `gorm:"column:timestamp"`
+		SourceIP      string    `gorm:"column:source_ip"`
+		SourcePort    int       `gorm:"column:source_port"`
+		Username      *string   `gorm:"column:username"`
+		Password      *string   `gorm:"column:password"`
+		SSHClientName *string   `gorm:"column:ssh_client_name"`
+		HASSH         string    `gorm:"column:hassh"`
+	}
+
+	var queryResults []QueryResult
+
+	query := `
+		SELECT 
+			e.id,
+			e.timestamp,
+			ip.address as source_ip,
+			e.source_port,
+			u.username,
+			pwd.password,
+			scn.value as ssh_client_name,
+			COALESCE(ha.fingerprint, '') as hassh
+		FROM ssh_connection_events e
+		INNER JOIN services s ON s.id = e.service_id
+		INNER JOIN ip_addresses ip ON ip.id = e.source_ip_id
+		LEFT JOIN usernames u ON u.id = e.username_id
+		LEFT JOIN passwords pwd ON pwd.id = e.password_id
+		LEFT JOIN ssh_client_names scn ON scn.id = e.ssh_client_name_id
+		LEFT JOIN ha_ssh_fingerprints ha ON ha.id = e.ha_ssh_fingerprint_id
+		WHERE s.uuid = ?
+		AND e.timestamp >= ?
+		ORDER BY e.timestamp DESC
+		LIMIT ?
+	`
+
+	result := s.db.Raw(query, serviceUUID, timeRange, limit).Scan(&queryResults)
+	if result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get auth methods for each event (many-to-many relationship)
+	eventIDs := make([]uint, len(queryResults))
+	for i, qr := range queryResults {
+		eventIDs[i] = qr.ID
+	}
+
+	type AuthMethodResult struct {
+		EventID    uint
+		MethodName string
+	}
+
+	var authMethods []AuthMethodResult
+	if len(eventIDs) > 0 {
+		authQuery := `
+			SELECT 
+				eam.event_id,
+				am.method_name
+			FROM ssh_event_auth_methods eam
+			INNER JOIN auth_methods am ON am.id = eam.auth_method_id
+			WHERE eam.event_id IN (?)
+			ORDER BY eam.event_id, am.method_name
+		`
+		s.db.Raw(authQuery, eventIDs).Scan(&authMethods)
+	}
+
+	// Build auth methods map
+	authMethodsMap := make(map[uint][]string)
+	for _, am := range authMethods {
+		authMethodsMap[am.EventID] = append(authMethodsMap[am.EventID], am.MethodName)
+	}
+
+	// Convert to event data points
+	var events []EventDataPoint
+	for _, qr := range queryResults {
+		hassh := qr.HASSH
+		if hassh == "" {
+			hassh = "unknown"
+		}
+		
+		event := EventDataPoint{
+			ID:         qr.ID,
+			Timestamp:  qr.Timestamp,
+			SourceIP:   qr.SourceIP,
+			SourcePort: qr.SourcePort,
+			Username:   stringOrDefault(qr.Username, "anonymous"),
+			Password:   stringOrDefault(qr.Password, "[none]"),
+			SSHClientName: stringOrDefault(qr.SSHClientName, "unknown"),
+			HASSH:      hassh,
+		}
+
+		// Add auth methods
+		if methods, ok := authMethodsMap[qr.ID]; ok && len(methods) > 0 {
+			authMethodsStr := ""
+			for i, method := range methods {
+				if i > 0 {
+					authMethodsStr += ", "
+				}
+				authMethodsStr += method
+			}
+			event.AuthMethods = authMethodsStr
+		} else {
+			event.AuthMethods = "none"
+		}
+
+		// Add geolocation if available
+		if s.geoIP != nil {
+			loc := s.geoIP.Lookup(qr.SourceIP)
+			event.Country = loc.Country
+			event.City = loc.City
+		}
+
+		events = append(events, event)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
+}
+
+// Helper function to handle nullable strings
+func stringOrDefault(value *string, defaultValue string) string {
+	if value != nil && *value != "" {
+		return *value
+	}
+	return defaultValue
 }
 
 // GET /api/heatmap/{service_uuid}?hours=24
@@ -682,6 +854,7 @@ func main() {
 
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/services", server.getServices).Methods("GET")
+	api.HandleFunc("/events/{service_uuid}", server.getEvents).Methods("GET")  // NEW ENDPOINT
 	api.HandleFunc("/heatmap/{service_uuid}", server.getHeatmapData).Methods("GET")
 	api.HandleFunc("/sankey/{service_uuid}", server.getSankeyData).Methods("GET")
 	api.HandleFunc("/bubblemap/{service_uuid}", server.getBubbleMapData).Methods("GET")
