@@ -61,6 +61,7 @@ message SSHConnectionEvent {
   // client_version as reported by protocol
   // Required field for connection analysis.
   string ssh_client_name = 7;
+
   // Username attempted during authentication.
   // Optional as some probes may not include credentials.
   bytes username = 9;

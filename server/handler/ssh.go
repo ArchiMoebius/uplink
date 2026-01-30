@@ -143,11 +143,12 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 			return fmt.Errorf("failed to get/create HASSH fingerprint: %w", err)
 		}
 
-		_, err = h.getOrCreateSshClientName(tx, string(event.SshClientName))
+		scn, err := h.getOrCreateSshClientName(tx, string(event.SshClientName))
 		var SshClientNameID *uint
 		if err != nil {
 			return fmt.Errorf("failed to get/create scn: %w", err)
 		}
+		SshClientNameID = &scn.ID
 
 		var usernameID *uint
 		if len(event.Username) > 0 {

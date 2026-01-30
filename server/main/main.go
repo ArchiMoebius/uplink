@@ -523,15 +523,17 @@ func (s *Server) getGroupByField(field string, alias string) string {
 func (s *Server) getFieldSQL(field string, alias string) string {
 	switch field {
 	case "username":
-		return "COALESCE(u.username, 'anonymous')"
+		return "COALESCE(usernames.username, 'anonymous')"
 	case "source_ip":
 		return "ip.address"
 	case "source_port":
 		return "CAST(e.source_port AS TEXT)"
 	case "hassh":
-		return "hassh.fingerprint"
+		return "ha_ssh_fingerprints.fingerprint"
+	case "ssh_client_name":
+		return "ssh_client_names.value"
 	case "password":
-		return "COALESCE(pwd.password, '[no password]')"
+		return "COALESCE(passwords.password, '[no password]')"
 	default:
 		return "'unknown'"
 	}
@@ -545,11 +547,13 @@ func (s *Server) getJoinsForField(field string, alias string) map[string]string 
 
 	switch field {
 	case "username":
-		joins["u"] = "LEFT JOIN usernames u ON u.id = e.username_id"
+		joins["u"] = "LEFT JOIN usernames ON usernames.id = e.username_id"
 	case "hassh":
-		joins["hassh"] = "INNER JOIN ha_ssh_fingerprints hassh ON hassh.id = e.ha_ssh_fingerprint_id"
+		joins["hassh"] = "INNER JOIN ha_ssh_fingerprints ON ha_ssh_fingerprints.id = e.ha_ssh_fingerprint_id"
+	case "ssh_client_name":
+		joins["ssh_client_name"] = "INNER JOIN ssh_client_names ON ssh_client_names.id = e.ssh_client_name_id"
 	case "password":
-		joins["pwd"] = "LEFT JOIN passwords pwd ON pwd.id = e.password_id"
+		joins["pwd"] = "LEFT JOIN passwords ON passwords.id = e.password_id"
 	}
 
 	return joins
@@ -667,7 +671,6 @@ func main() {
 		)
 		pb.RegisterTransporterServer(grpcServer, server)
 
-		log.Println("gRPC server listening on :50051")
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve gRPC: %v", err)
 		}
