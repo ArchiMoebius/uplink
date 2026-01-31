@@ -14,7 +14,7 @@ import (
 
 type Service struct {
 	ID        uint      `gorm:"primaryKey"`
-	UUID      string    `gorm:"uniqueIndex;size:32;not null"` // hex-encoded UUID
+	UUID      string    `gorm:"uniqueIndex;size:32;not null"`
 	CreatedAt time.Time `gorm:"index"`
 }
 
@@ -27,7 +27,7 @@ type IPAddress struct {
 
 type HASSHFingerprint struct {
 	ID          uint   `gorm:"primaryKey"`
-	Fingerprint string `gorm:"uniqueIndex;size:255;not null"`
+	Fingerprint string `gorm:"uniqueIndex;size:32;not null"`
 	CreatedAt   time.Time
 }
 
@@ -56,6 +56,7 @@ type AuthMethod struct {
 
 type SSHConnectionEvent struct {
 	ID                 uint             `gorm:"primaryKey"`
+	SessionUUID        string           `gorm:"uniqueIndex;size:32;not null"`
 	ServiceID          uint             `gorm:"not null;index:idx_service_timestamp"`
 	Service            Service          `gorm:"foreignKey:ServiceID;constraint:OnDelete:RESTRICT"`
 	SourceIPID         uint             `gorm:"not null;index"`
@@ -118,6 +119,9 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 	if len(event.ServiceUuid) != 16 {
 		return fmt.Errorf("invalid service UUID length: %d", len(event.ServiceUuid))
 	}
+	if len(event.SessionUuid) != 16 {
+		return fmt.Errorf("invalid session UUID length: %d", len(event.SessionUuid))
+	}
 	if len(event.Hassh) != 32 {
 		return fmt.Errorf("hassh is required")
 	}
@@ -126,6 +130,7 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 		event.ServiceUuid, event.Hassh, event.SourcePort)
 
 	serviceUUID := hex.EncodeToString(event.ServiceUuid)
+	sessionUUID := hex.EncodeToString(event.SessionUuid)
 
 	return h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		service, err := h.getOrCreateService(tx, serviceUUID)
@@ -173,6 +178,7 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 
 		eventTimestamp := time.Unix(0, event.TimestampMicros*1000)
 		sshEvent := SSHConnectionEvent{
+			SessionUUID:        sessionUUID,
 			ServiceID:          service.ID,
 			SourceIPID:         sourceIP.ID,
 			SourcePort:         event.SourcePort,
@@ -266,7 +272,7 @@ func (h *SSHEventHandler) getOrCreateSourceIP(tx *gorm.DB, event *pb.SSHConnecti
 
 func (h *SSHEventHandler) getOrCreateHASSH(tx *gorm.DB, fingerprint []byte) (*HASSHFingerprint, error) {
 	var hassh HASSHFingerprint
-	fp := hex.EncodeToString(fingerprint)
+	fp := string(fingerprint)
 	result := tx.Where("fingerprint = ?", fp).First(&hassh)
 
 	if result.Error == gorm.ErrRecordNotFound {

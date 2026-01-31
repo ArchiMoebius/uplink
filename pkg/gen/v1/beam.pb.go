@@ -112,25 +112,28 @@ type SSHConnectionEvent struct {
 	// Service UUID identifying the SSH service instance.
 	// Using bytes (16 bytes) is more efficient than string (36 bytes with hyphens).
 	ServiceUuid []byte `protobuf:"bytes,5,opt,name=service_uuid,json=serviceUuid,proto3" json:"service_uuid,omitempty"`
+	// Session UUID identifying the SSH session instance.
+	// Using bytes (16 bytes) is more efficient than string (36 bytes with hyphens).
+	SessionUuid []byte `protobuf:"bytes,6,opt,name=session_uuid,json=sessionUuid,proto3" json:"session_uuid,omitempty"`
 	// HASSH fingerprint for client identification.
 	// Required field for connection analysis.
-	Hassh []byte `protobuf:"bytes,6,opt,name=hassh,proto3" json:"hassh,omitempty"`
+	Hassh []byte `protobuf:"bytes,7,opt,name=hassh,proto3" json:"hassh,omitempty"`
 	// Public key(s) used or attempted during authentication.
 	// Stored as repeated bytes for multiple key attempts.
-	PublicKeySums [][]byte `protobuf:"bytes,11,rep,name=public_key_sums,json=publicKeySums,proto3" json:"public_key_sums,omitempty"`
+	PublicKeySums [][]byte `protobuf:"bytes,8,rep,name=public_key_sums,json=publicKeySums,proto3" json:"public_key_sums,omitempty"`
 	// Authentication method(s) attempted or used.
 	// Common values: "password", "publickey", "keyboard-interactive", "gssapi-with-mic"
 	// Stored as repeated enum for efficiency over repeated strings.
-	AuthMethods []AuthMethod `protobuf:"varint,8,rep,packed,name=auth_methods,json=authMethods,proto3,enum=uplink.event.ssh.v1.AuthMethod" json:"auth_methods,omitempty"`
+	AuthMethods []AuthMethod `protobuf:"varint,9,rep,packed,name=auth_methods,json=authMethods,proto3,enum=uplink.event.ssh.v1.AuthMethod" json:"auth_methods,omitempty"`
 	// client_version as reported by protocol
 	// Required field for connection analysis.
-	SshClientName string `protobuf:"bytes,7,opt,name=ssh_client_name,json=sshClientName,proto3" json:"ssh_client_name,omitempty"`
+	SshClientName string `protobuf:"bytes,10,opt,name=ssh_client_name,json=sshClientName,proto3" json:"ssh_client_name,omitempty"`
 	// Username attempted during authentication.
 	// Optional as some probes may not include credentials.
-	Username []byte `protobuf:"bytes,9,opt,name=username,proto3" json:"username,omitempty"`
+	Username []byte `protobuf:"bytes,11,opt,name=username,proto3" json:"username,omitempty"`
 	// Password attempted during authentication.
 	// Stored as bytes for binary safety and to avoid string encoding overhead.
-	Password      []byte `protobuf:"bytes,10,opt,name=password,proto3" json:"password,omitempty"`
+	Password      []byte `protobuf:"bytes,12,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -211,6 +214,13 @@ func (x *SSHConnectionEvent) GetServiceUuid() []byte {
 	return nil
 }
 
+func (x *SSHConnectionEvent) GetSessionUuid() []byte {
+	if x != nil {
+		return x.SessionUuid
+	}
+	return nil
+}
+
 func (x *SSHConnectionEvent) GetHassh() []byte {
 	if x != nil {
 		return x.Hassh
@@ -273,7 +283,7 @@ var File_v1_beam_proto protoreflect.FileDescriptor
 
 const file_v1_beam_proto_rawDesc = "" +
 	"\n" +
-	"\rv1/beam.proto\x12\x13uplink.event.ssh.v1\x1a\x1bgoogle/api/field_info.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xd6\x03\n" +
+	"\rv1/beam.proto\x12\x13uplink.event.ssh.v1\x1a\x1bgoogle/api/field_info.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x83\x04\n" +
 	"\x12SSHConnectionEvent\x12)\n" +
 	"\x10timestamp_micros\x18\x01 \x01(\x03R\x0ftimestampMicros\x12+\n" +
 	"\vsource_ipv4\x18\x02 \x01(\aB\b\xe2\x8c\xcf\xd7\b\x02\b\x02H\x00R\n" +
@@ -282,14 +292,15 @@ const file_v1_beam_proto_rawDesc = "" +
 	"sourceIpv6\x12\x1f\n" +
 	"\vsource_port\x18\x04 \x01(\aR\n" +
 	"sourcePort\x12+\n" +
-	"\fservice_uuid\x18\x05 \x01(\fB\b\xe2\x8c\xcf\xd7\b\x02\b\x01R\vserviceUuid\x12\x14\n" +
-	"\x05hassh\x18\x06 \x01(\fR\x05hassh\x12&\n" +
-	"\x0fpublic_key_sums\x18\v \x03(\fR\rpublicKeySums\x12B\n" +
-	"\fauth_methods\x18\b \x03(\x0e2\x1f.uplink.event.ssh.v1.AuthMethodR\vauthMethods\x12&\n" +
-	"\x0fssh_client_name\x18\a \x01(\tR\rsshClientName\x12\x1a\n" +
-	"\busername\x18\t \x01(\fR\busername\x12\x1a\n" +
-	"\bpassword\x18\n" +
-	" \x01(\fR\bpasswordB\v\n" +
+	"\fservice_uuid\x18\x05 \x01(\fB\b\xe2\x8c\xcf\xd7\b\x02\b\x01R\vserviceUuid\x12+\n" +
+	"\fsession_uuid\x18\x06 \x01(\fB\b\xe2\x8c\xcf\xd7\b\x02\b\x01R\vsessionUuid\x12\x14\n" +
+	"\x05hassh\x18\a \x01(\fR\x05hassh\x12&\n" +
+	"\x0fpublic_key_sums\x18\b \x03(\fR\rpublicKeySums\x12B\n" +
+	"\fauth_methods\x18\t \x03(\x0e2\x1f.uplink.event.ssh.v1.AuthMethodR\vauthMethods\x12&\n" +
+	"\x0fssh_client_name\x18\n" +
+	" \x01(\tR\rsshClientName\x12\x1a\n" +
+	"\busername\x18\v \x01(\fR\busername\x12\x1a\n" +
+	"\bpassword\x18\f \x01(\fR\bpasswordB\v\n" +
 	"\tsource_ip*\xd6\x01\n" +
 	"\n" +
 	"AuthMethod\x12\x1b\n" +
