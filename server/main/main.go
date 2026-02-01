@@ -42,6 +42,26 @@ var (
 	subMutex    sync.RWMutex
 )
 
+const (
+	mirrorBasePath = "/var/log/fishler/fishyfs/mirror"
+	maxFileSize    = 100 * 1024 * 1024 // 100MB
+)
+
+// FileInfo represents a file or directory in the mirror
+type MirrorFileInfo struct {
+	Name    string `json:"name"`
+	Path    string `json:"path"`
+	IsDir   bool   `json:"is_dir"`
+	Size    int64  `json:"size"`
+	ModTime string `json:"mod_time"`
+}
+
+// DirectoryListing represents the contents of a directory
+type MirrorDirectoryListing struct {
+	Path    string           `json:"path"`
+	Entries []MirrorFileInfo `json:"entries"`
+}
+
 type Server struct {
 	db           *gorm.DB
 	eventHandler *handler.SSHEventHandler
@@ -843,7 +863,6 @@ func (s *Server) getSessionLogContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	const maxFileSize = 100 * 1024 * 1024 // 100MB
 	if fileInfo.Size() > maxFileSize {
 		http.Error(w, "Log file too large", http.StatusRequestEntityTooLarge)
 		return
@@ -862,6 +881,202 @@ func (s *Server) getSessionLogContent(w http.ResponseWriter, r *http.Request) {
 	// - Last-Modified headers
 	// - Content-Length headers
 	// - If-Modified-Since / If-None-Match conditional requests
+	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
+}
+
+// GET /api/mirror/browse?path=<path> - Browse directory contents (JSON)
+func (s *Server) browseMirrorDirectory(w http.ResponseWriter, r *http.Request) {
+	// Get the requested path (relative to mirror base)
+	requestedPath := r.URL.Query().Get("path")
+	if requestedPath == "" {
+		requestedPath = "."
+	}
+
+	// Sanitize and validate path
+	cleanPath := filepath.Clean(requestedPath)
+
+	// Prevent path traversal attacks
+	if strings.Contains(cleanPath, "..") {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// Construct full path
+	fullPath := filepath.Join(mirrorBasePath, cleanPath)
+
+	// Verify the resolved path is within mirror directory
+	realPath, err := filepath.EvalSymlinks(fullPath)
+	if err != nil {
+		// If symlink resolution fails, use the cleaned path for checking
+		realPath = fullPath
+	}
+
+	// Ensure the path is within the mirror base directory
+	realBase, err := filepath.EvalSymlinks(mirrorBasePath)
+	if err != nil {
+		realBase = mirrorBasePath
+	}
+
+	if !strings.HasPrefix(realPath, realBase) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Check if path exists and is a directory
+	fileInfo, err := os.Stat(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "Directory not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Error accessing directory", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if !fileInfo.IsDir() {
+		http.Error(w, "Path is not a directory", http.StatusBadRequest)
+		return
+	}
+
+	// Read directory contents
+	entries, err := os.ReadDir(fullPath)
+	if err != nil {
+		http.Error(w, "Error reading directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Build response
+	listing := MirrorDirectoryListing{
+		Path:    cleanPath,
+		Entries: make([]MirrorFileInfo, 0, len(entries)),
+	}
+
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			continue // Skip entries we can't read
+		}
+
+		var relativePath string
+		if cleanPath == "." {
+			relativePath = entry.Name()
+		} else {
+			relativePath = filepath.Join(cleanPath, entry.Name())
+		}
+
+		fileInfo := MirrorFileInfo{
+			Name:    entry.Name(),
+			Path:    relativePath,
+			IsDir:   entry.IsDir(),
+			Size:    info.Size(),
+			ModTime: info.ModTime().Format("2006-01-02 15:04"),
+		}
+
+		listing.Entries = append(listing.Entries, fileInfo)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(listing)
+}
+
+// GET /api/mirror/download?path=<path> - Download a file
+func (s *Server) downloadMirrorFile(w http.ResponseWriter, r *http.Request) {
+	// Get the requested file path (relative to mirror base)
+	requestedPath := r.URL.Query().Get("path")
+	if requestedPath == "" {
+		http.Error(w, "Path parameter required", http.StatusBadRequest)
+		return
+	}
+
+	// Sanitize and validate path
+	cleanPath := filepath.Clean(requestedPath)
+
+	// Prevent path traversal attacks
+	if strings.Contains(cleanPath, "..") {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// Construct full path
+	fullPath := filepath.Join(mirrorBasePath, cleanPath)
+
+	// Verify the resolved path is within mirror directory
+	realPath, err := filepath.EvalSymlinks(fullPath)
+	if err != nil {
+		// If symlink resolution fails, use the cleaned path for checking
+		realPath = fullPath
+	}
+
+	// Ensure the path is within the mirror base directory
+	realBase, err := filepath.EvalSymlinks(mirrorBasePath)
+	if err != nil {
+		realBase = mirrorBasePath
+	}
+
+	if !strings.HasPrefix(realPath, realBase) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Open file for streaming
+	file, err := os.Open(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "File not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Error accessing file", http.StatusInternalServerError)
+		}
+		return
+	}
+	defer file.Close()
+
+	// Get file info
+	fileInfo, err := file.Stat()
+	if err != nil {
+		http.Error(w, "Error accessing file", http.StatusInternalServerError)
+		return
+	}
+
+	// Don't allow downloading directories
+	if fileInfo.IsDir() {
+		http.Error(w, "Cannot download directory", http.StatusBadRequest)
+		return
+	}
+
+	// Check file size
+	if fileInfo.Size() > maxFileSize {
+		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	// Determine content type
+	contentType := "application/octet-stream"
+
+	// Try to detect content type from extension
+	ext := strings.ToLower(filepath.Ext(fileInfo.Name()))
+	switch ext {
+	case ".txt", ".log":
+		contentType = "text/plain; charset=utf-8"
+	case ".json":
+		contentType = "application/json"
+	case ".xml":
+		contentType = "application/xml"
+	case ".html", ".htm":
+		contentType = "text/html; charset=utf-8"
+	case ".csv":
+		contentType = "text/csv"
+	case ".db", ".sqlite", ".sqlite3":
+		contentType = "application/x-sqlite3"
+	}
+
+	// Set headers for download
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileInfo.Name()))
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+
+	// Stream the file
 	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
 }
 
@@ -904,7 +1119,7 @@ func main() {
 	server := NewServer(db, eventHandler, geoIP)
 
 	go func() {
-		lis, err := net.Listen("tcp", ":50051")
+		lis, err := net.Listen("tcp", "127.0.0.1:50051")
 		if err != nil {
 			log.Fatalf("Failed to listen on gRPC port: %v", err)
 		}
@@ -935,9 +1150,9 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/ws", server.handleWebSocket)
+	r.HandleFunc("/e7d516f4d1a0e51a0f7bd70fbbaaa715/ws", server.handleWebSocket)
 
-	api := r.PathPrefix("/api").Subrouter()
+	api := r.PathPrefix("/e7d516f4d1a0e51a0f7bd70fbbaaa715/api").Subrouter()
 	api.HandleFunc("/services", server.getServices).Methods("GET")
 	api.HandleFunc("/events/{service_uuid}", server.getEvents).Methods("GET")
 	api.HandleFunc("/heatmap/{service_uuid}", server.getHeatmapData).Methods("GET")
@@ -945,12 +1160,18 @@ func main() {
 	api.HandleFunc("/bubblemap/{service_uuid}", server.getBubbleMapData).Methods("GET")
 	api.HandleFunc("/stats/{service_uuid}", server.getStats).Methods("GET")
 	api.HandleFunc("/session/{session_id}/content", server.getSessionLogContent).Methods("GET")
+	api.HandleFunc("/mirror/browse", server.browseMirrorDirectory).Methods("GET")
+	api.HandleFunc("/mirror/download", server.downloadMirrorFile).Methods("GET")
 
 	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
 		log.Fatalf("Failed to create sub filesystem: %v", err)
 	}
-	r.PathPrefix("/").Handler(http.FileServer(http.FS(staticFS)))
+	r.PathPrefix("/86b2d7c34de6b91f09df44083f4a99b1/").Handler(
+		http.StripPrefix("/86b2d7c34de6b91f09df44083f4a99b1/",
+			http.FileServer(http.FS(staticFS)),
+		),
+	)
 
 	httpHandler := enableCORS(r)
 

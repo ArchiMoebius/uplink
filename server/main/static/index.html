@@ -39,6 +39,14 @@
             overflow-x: hidden;
         }
 
+        a {
+            color: var(--text-secondary);
+        }
+
+        a:hover {
+            color: var(--text-primary);
+        }
+
         /* Animated background grid */
         body::before {
             content: '';
@@ -669,6 +677,9 @@
                 <span class="status-dot" id="wsStatus"></span>
                 <span id="wsStatusText">Disconnected</span>
             </div>
+            <div class="status-indicator" style="margin-left: 10px;">
+                <span ><a href="mirror.html" target="_blank">Files</a></span>
+            </div>
         </header>
 
         <div class="stats-grid" id="statsGrid">
@@ -805,8 +816,8 @@
     <div class="tooltip" id="tooltip"></div>
 
     <script>
-        const API_BASE = 'http://localhost:8080/api';
-        const WS_URL = 'ws://localhost:8080/ws';
+        const API_BASE = `${window.location.protocol}//${window.location.host}/e7d516f4d1a0e51a0f7bd70fbbaaa715/api`;
+        const WS_URL = `ws://${window.location.host}/e7d516f4d1a0e51a0f7bd70fbbaaa715/ws`;
 
         let ws = null;
         let currentService = null;
@@ -831,7 +842,7 @@
         // Helper function to open session log
         function openSessionLog(sessionId) {
             if (sessionId && sessionId !== '') {
-                window.open(`/log.html?session_id=${sessionId}`, '_blank');
+                window.open(`${window.location.pathname}/log.html?session_id=${sessionId}`, '_blank');
             } else {
                 console.warn('No session ID available');
             }

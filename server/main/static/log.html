@@ -167,7 +167,7 @@
 <body>
 
     <div class="container">
-        <a href="/" class="back-link">← Back</a>
+        <a href="index.html" class="back-link">← Back to Dashboard</a>
 
         <header>
             <h1>SSH Session Terminal Output</h1>
@@ -192,7 +192,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
 
     <script>
-        const API_BASE = 'http://localhost:8080/api';
+        const API_BASE = `${window.location.protocol}//${window.location.host}/e7d516f4d1a0e51a0f7bd70fbbaaa715/api`;
         const params = new URLSearchParams(location.search);
         const sessionID = params.get('session_id');
 

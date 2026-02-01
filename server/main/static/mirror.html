@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mirror File Browser</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-card: #1a2140;
+            --accent-primary: #00d9ff;
+            --accent-secondary: #7b2cbf;
+            --accent-danger: #ff006e;
+            --text-primary: #e6e8f0;
+            --text-secondary: #8892b0;
+            --border-color: #2d3561;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, var(--bg-primary), #1a1444);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            min-height: 0;
+        }
+
+        /* ---------- HEADER / CONTROLS ---------- */
+
+        header {
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .back-link {
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .breadcrumb a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            color: var(--text-secondary);
+            margin: 0 0.5rem;
+        }
+
+        /* ---------- FILE LIST ---------- */
+
+        .file-container {
+            flex: 1;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            z-index: 10;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-primary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .file-row:hover {
+            background: rgba(0, 217, 255, 0.1) !important;
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 24px;
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .name-cell {
+            display: flex;
+            align-items: center;
+        }
+
+        .name-cell a {
+            color: var(--text-primary);
+            text-decoration: none;
+            flex: 1;
+        }
+
+        .name-cell a:hover {
+            color: var(--accent-primary);
+        }
+
+        .dir-name {
+            color: var(--accent-primary);
+        }
+
+        .size-cell {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .date-cell {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .loading,
+        .error,
+        .empty {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            color: var(--accent-danger);
+        }
+
+        /* ---------- SCROLLBAR ---------- */
+
+        .file-list::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .file-list::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .file-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        .file-list::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Dashboard</a>
+
+        <header>
+            <h1>Mirror File Browser</h1>
+        </header>
+
+        <div class="breadcrumb" id="breadcrumb">
+            <a href="#" onclick="navigate(''); return false;">mirror</a>
+        </div>
+
+        <div class="file-container">
+            <div class="file-list">
+                <div class="loading">Loading directory...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = `${window.location.protocol}//${window.location.host}/e7d516f4d1a0e51a0f7bd70fbbaaa715/api`;
+        let currentPath = '';
+
+        // Parse path from URL hash
+        function parseHash() {
+            const hash = window.location.hash.slice(1);
+            return hash ? decodeURIComponent(hash) : '';
+        }
+
+        // Update URL hash
+        function updateHash(path) {
+            window.location.hash = path ? encodeURIComponent(path) : '';
+        }
+
+        // Navigate to a path
+        function navigate(path) {
+            currentPath = path;
+            updateHash(path);
+            loadDirectory(path);
+        }
+
+        // Format file size
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '-';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+        }
+
+        // Build breadcrumb navigation
+        function buildBreadcrumb(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            let html = '<a href="#" onclick="navigate(\'\'); return false;">mirror</a>';
+
+            if (path) {
+                const parts = path.split('/').filter(p => p);
+                let buildPath = '';
+
+                parts.forEach((part, i) => {
+                    buildPath += (buildPath ? '/' : '') + part;
+                    const pathToNavigate = buildPath;
+                    html += '<span>/</span>';
+                    html += `<a href="#" onclick="navigate('${pathToNavigate}'); return false;">${part}</a>`;
+                });
+            }
+
+            breadcrumb.innerHTML = html;
+        }
+
+        // Load directory contents
+        async function loadDirectory(path) {
+            const listContainer = document.querySelector('.file-list');
+            listContainer.innerHTML = '<div class="loading">Loading directory...</div>';
+
+            buildBreadcrumb(path);
+
+            try {
+                const url = path
+                    ? `${API_BASE}/mirror/browse?path=${encodeURIComponent(path)}`
+                    : `${API_BASE}/mirror/browse`;
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.entries || data.entries.length === 0) {
+                    listContainer.innerHTML = '<div class="empty">This directory is empty.</div>';
+                    return;
+                }
+
+                // Sort: directories first, then files, alphabetically
+                const entries = data.entries.sort((a, b) => {
+                    if (a.is_dir && !b.is_dir) return -1;
+                    if (!a.is_dir && b.is_dir) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                let html = '<table><thead><tr>';
+                html += '<th>Name</th>';
+                html += '<th>Size</th>';
+                html += '<th>Modified</th>';
+                html += '</tr></thead><tbody>';
+
+                // Add parent directory link if not at root
+                if (path) {
+                    const parentPath = path.split('/').slice(0, -1).join('/');
+                    html += '<tr>';
+                    html += '<td colspan="3"><div class="name-cell">';
+                    html += '<span class="icon">📁</span>';
+                    html += `<a href="#" onclick="navigate('${parentPath}'); return false;" class="dir-name">..</a>`;
+                    html += '</div></td>';
+                    html += '</tr>';
+                }
+
+                // Add entries
+                entries.forEach(entry => {
+                    if (entry.is_dir) {
+                        html += '<tr>';
+                        html += '<td><div class="name-cell">';
+                        html += '<span class="icon">📁</span>';
+                        html += `<a href="#" onclick="navigate('${entry.path}'); return false;" class="dir-name">${entry.name}/</a>`;
+                        html += '</div></td>';
+                        html += `<td class="size-cell">-</td>`;
+                        html += `<td class="date-cell">${entry.mod_time}</td>`;
+                        html += '</tr>';
+                    } else {
+                        html += `<tr class="file-row" onclick="downloadFile('${entry.path}')" style="cursor: pointer;">`;
+                        html += '<td><div class="name-cell">';
+                        html += '<span class="icon">📄</span>';
+                        html += `<span>${entry.name}</span>`;
+                        html += '</div></td>';
+                        html += `<td class="size-cell">${formatSize(entry.size)}</td>`;
+                        html += `<td class="date-cell">${entry.mod_time}</td>`;
+                        html += '</tr>';
+                    }
+                });
+
+                html += '</tbody></table>';
+                listContainer.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading directory:', error);
+                listContainer.innerHTML = `<div class="error">Error loading directory: ${error.message}</div>`;
+            }
+        }
+
+        // Download a file
+        function downloadFile(path) {
+            const url = `${API_BASE}/mirror/download?path=${encodeURIComponent(path)}`;
+            window.location.href = url;
+        }
+
+        // Handle hash changes
+        window.addEventListener('hashchange', () => {
+            const path = parseHash();
+            if (path !== currentPath) {
+                navigate(path);
+            }
+        });
+
+        // Initial load
+        const initialPath = parseHash();
+        navigate(initialPath);
+    </script>
+
+</body>
+
+</html>
