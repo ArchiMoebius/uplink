@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Log Viewer</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-card: #1a2140;
+            --accent-primary: #00d9ff;
+            --accent-secondary: #7b2cbf;
+            --accent-danger: #ff006e;
+            --text-primary: #e6e8f0;
+            --text-secondary: #8892b0;
+            --border-color: #2d3561;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, var(--bg-primary), #1a1444);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            min-height: 0;
+        }
+
+        /* ---------- HEADER / CONTROLS ---------- */
+
+        header {
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        button:hover:not(:disabled) {
+            border-color: var(--accent-primary);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .back-link {
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        /* ---------- TERMINAL ---------- */
+
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 0;
+            transition: all 0.25s ease;
+        }
+
+        #terminalWrapper {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        #terminal {
+            flex: 1;
+            height: 100%;
+        }
+
+        /* ---------- FULLSCREEN ---------- */
+
+        body.terminal-fullscreen {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body.terminal-fullscreen header,
+        body.terminal-fullscreen .controls,
+        body.terminal-fullscreen .back-link {
+            display: none;
+        }
+
+        body.terminal-fullscreen .container {
+            max-width: none;
+        }
+
+        .terminal-container.fullscreen {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            z-index: 9999;
+        }
+
+        /* ---------- MISC ---------- */
+
+        .loading {
+            margin: auto;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <a href="/" class="back-link">← Back</a>
+
+        <header>
+            <h1>SSH Session Terminal Output</h1>
+        </header>
+
+        <div class="controls">
+            <button id="copyBtn" disabled>📋 Copy</button>
+            <button id="downloadBtn" disabled>💾 Download</button>
+            <button id="clearBtn" disabled>🗑 Clear</button>
+            <button id="refreshBtn" disabled>🔄 Refresh</button>
+            <button id="fullscreenBtn">⛶ Fullscreen</button>
+        </div>
+
+        <div class="terminal-container">
+            <div id="terminalWrapper">
+                <div class="loading">Loading session log…</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        const params = new URLSearchParams(location.search);
+        const sessionID = params.get('session_id');
+
+        let term, fitAddon;
+        let logContent = '';
+        let isFullscreen = false;
+
+        function initTerminal() {
+            term = new Terminal({
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: 14,
+                scrollback: 10000,
+                convertEol: true,
+                cursorBlink: true,
+                theme: { background: '#1a2140', foreground: '#e6e8f0' }
+            });
+
+            fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+
+            const wrapper = document.getElementById('terminalWrapper');
+            wrapper.innerHTML = '<div id="terminal"></div>';
+            term.open(document.getElementById('terminal'));
+
+            requestAnimationFrame(() => fitAddon.fit());
+            new ResizeObserver(() => fitAddon.fit()).observe(wrapper);
+        }
+
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+
+            document.body.classList.toggle('terminal-fullscreen', isFullscreen);
+            document.querySelector('.terminal-container')
+                .classList.toggle('fullscreen', isFullscreen);
+
+            document.getElementById('fullscreenBtn').textContent =
+                isFullscreen ? '🗗 Exit Fullscreen' : '⛶ Fullscreen';
+
+            setTimeout(() => fitAddon.fit(), 100);
+        }
+
+        document.getElementById('fullscreenBtn').onclick = toggleFullscreen;
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && isFullscreen) {
+                toggleFullscreen();
+            }
+        });
+
+        async function loadLog() {
+            initTerminal();
+            term.writeln('Loading log…');
+
+            const res = await fetch(`${API_BASE}/session/${sessionID}/content`);
+            logContent = await res.text();
+
+            term.clear();
+            term.write(logContent || '— empty log —');
+
+            ['copyBtn', 'downloadBtn', 'clearBtn', 'refreshBtn']
+                .forEach(id => document.getElementById(id).disabled = false);
+        }
+
+        document.getElementById('copyBtn').onclick =
+            () => navigator.clipboard.writeText(logContent);
+
+        document.getElementById('downloadBtn').onclick = () => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([logContent]));
+            a.download = `${sessionID}.log`;
+            a.click();
+        };
+
+        document.getElementById('clearBtn').onclick = () => term.clear();
+        document.getElementById('refreshBtn').onclick = loadLog;
+
+        loadLog();
+    </script>
+
+</body>
+
+</html>

@@ -52,7 +52,7 @@ help:
 .PHONY: check-tools
 check-tools:
 	@echo "$(COLOR_BLUE)Checking required tools...$(COLOR_RESET)"
-	@command -v $(PROTOC) >/dev/null 2>&1 || { echo "$(COLOR_YELLOW)protoc not found. Please install Protocol Buffers compiler.$(COLOR_RESET)"; exit 1; }
+	@command -v $(PROTOC) >/dev/null 2>&1 || { echo "$(COLOR_YELLOW)protoc not found. Please install Protocol Buffers compiler from https://github.com/protocolbuffers/protobuf/releases/$(COLOR_RESET)"; exit 1; }
 	@command -v $(PROTOC_GEN_GO) >/dev/null 2>&1 || { echo "$(COLOR_YELLOW)protoc-gen-go not found. Run 'make install-tools'$(COLOR_RESET)"; exit 1; }
 	@command -v $(PROTOC_GEN_GO_GRPC) >/dev/null 2>&1 || { echo "$(COLOR_YELLOW)protoc-gen-go-grpc not found. Run 'make install-tools'$(COLOR_RESET)"; exit 1; }
 	@echo "$(COLOR_GREEN)✓ All tools installed$(COLOR_RESET)"

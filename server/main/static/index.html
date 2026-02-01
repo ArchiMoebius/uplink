@@ -557,6 +557,7 @@
 
         tbody tr {
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         tbody tr:hover {
@@ -641,6 +642,18 @@
 
         .axis-controls.hidden {
             display: none;
+        }
+
+        /* Clickable hint */
+        .clickable-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-style: italic;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 217, 255, 0.05);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -814,6 +827,15 @@
         let currentPage = 1;
         let rowsPerPage = 10;
         let searchQuery = '';
+
+        // Helper function to open session log
+        function openSessionLog(sessionId) {
+            if (sessionId && sessionId !== '') {
+                window.open(`/log.html?session_id=${sessionId}`, '_blank');
+            } else {
+                console.warn('No session ID available');
+            }
+        }
 
         // Initialize WebSocket
         function initWebSocket() {
@@ -1008,6 +1030,12 @@
             const container = document.getElementById('chart');
             container.innerHTML = '';
 
+            // Add clickable hint
+            const hint = document.createElement('div');
+            hint.className = 'clickable-hint';
+            hint.textContent = '💡 Click any row to view session logs';
+            container.appendChild(hint);
+
             // Store the data
             tableData = data;
             filteredTableData = [...data];
@@ -1048,6 +1076,9 @@
             const headerRow = thead.append('tr');
 
             columns.forEach(col => {
+                // Skip session_id column in display
+                if (col === 'session_id') return;
+
                 const th = headerRow.append('th')
                     .attr('class', 'sortable')
                     .text(formatColumnName(col))
@@ -1120,7 +1151,7 @@
         }
 
         function updateTable() {
-            const columns = tableData.length > 0 ? Object.keys(tableData[0]) : [];
+            const columns = tableData.length > 0 ? Object.keys(tableData[0]).filter(col => col !== 'session_id') : [];
             const tbody = d3.select('#chart tbody');
 
             // Update header sort indicators
@@ -1130,8 +1161,10 @@
 
             if (currentSortColumn) {
                 const colIndex = columns.indexOf(currentSortColumn);
-                d3.select(`#chart th:nth-child(${colIndex + 1})`)
-                    .classed(`sorted-${currentSortOrder}`, true);
+                if (colIndex >= 0) {
+                    d3.select(`#chart th:nth-child(${colIndex + 1})`)
+                        .classed(`sorted-${currentSortOrder}`, true);
+                }
             }
 
             // Calculate pagination
@@ -1147,7 +1180,28 @@
                 .data(pageData)
                 .enter()
                 .append('tr')
-                .style('opacity', 0);
+                .style('opacity', 0)
+                .style('cursor', 'pointer')
+                .on('click', function (event, d) {
+                    if (d.session_id) {
+                        openSessionLog(d.session_id);
+                    } else {
+                        console.warn('No session_id available for this row', d);
+                    }
+                })
+                .on('mouseover', function (event, d) {
+                    d3.select(this).style('background', 'rgba(0, 217, 255, 0.15)');
+                })
+                .on('mouseout', function (event, d) {
+                    // Find the actual index in the filtered data
+                    const actualIndex = filteredTableData.indexOf(d);
+                    const isEven = actualIndex % 2 === 1;
+                    if (isEven) {
+                        d3.select(this).style('background', 'rgba(255, 255, 255, 0.02)');
+                    } else {
+                        d3.select(this).style('background', 'transparent');
+                    }
+                });
 
             columns.forEach(col => {
                 rows.append('td')
@@ -1242,6 +1296,12 @@
             const container = document.getElementById('chart');
             container.innerHTML = '';
 
+            // Add clickable hint
+            const hint = document.createElement('div');
+            hint.className = 'clickable-hint';
+            hint.textContent = '💡 Click any cell to view session logs';
+            container.appendChild(hint);
+
             const xValues = [...new Set(data.map(d => d.source_ip))].sort();
             const yValues = [...new Set(data.map(d => d.username))].sort();
 
@@ -1296,27 +1356,35 @@
                 .domain([0, maxCount])
                 .interpolator(d3.interpolateRgbBasis(['#1a2140', '#7b2cbf', '#ff006e', '#00d9ff']));
 
+            // Create a map for both count and session_id
             const dataMap = new Map();
             data.forEach(d => {
-                dataMap.set(`${d.username}-${d.source_ip}`, d.count);
+                dataMap.set(`${d.username}-${d.source_ip}`, { count: d.count, session_id: d.session_id });
             });
 
             yValues.forEach((yValue, yIndex) => {
                 xValues.forEach((xValue, xIndex) => {
-                    const count = dataMap.get(`${yValue}-${xValue}`) || 0;
-                    if (count > 0) {
+                    const cellData = dataMap.get(`${yValue}-${xValue}`);
+                    if (cellData && cellData.count > 0) {
                         g.append('rect')
                             .attr('class', 'cell')
                             .attr('x', xScale(xValue))
                             .attr('y', yScale(yValue))
                             .attr('width', xScale.bandwidth())
                             .attr('height', yScale.bandwidth())
-                            .attr('fill', colorScale(count))
+                            .attr('fill', colorScale(cellData.count))
                             .attr('opacity', 0)
                             .on('mouseover', function (event) {
-                                showTooltip(event, yValue, xValue, count);
+                                showTooltip(event, yValue, xValue, cellData.count);
+                                d3.select(this).style('stroke-width', '4px');
                             })
-                            .on('mouseout', hideTooltip)
+                            .on('mouseout', function () {
+                                hideTooltip();
+                                d3.select(this).style('stroke-width', '2px');
+                            })
+                            .on('click', function () {
+                                openSessionLog(cellData.session_id);
+                            })
                             .transition()
                             .duration(500)
                             .delay((yIndex * xValues.length + xIndex) * 10)
@@ -1389,6 +1457,12 @@
         async function renderBubbleMap(data) {
             const container = document.getElementById('chart');
             container.innerHTML = '';
+
+            // Add clickable hint
+            const hint = document.createElement('div');
+            hint.className = 'clickable-hint';
+            hint.textContent = '💡 Click any bubble to view session logs';
+            container.appendChild(hint);
 
             // Get container dimensions
             const containerRect = container.getBoundingClientRect();
@@ -1479,8 +1553,15 @@
                 .attr('opacity', 0.7)
                 .on('mouseover', function (event, d) {
                     showBubbleTooltip(event, d);
+                    d3.select(this).style('stroke-width', '4px');
                 })
-                .on('mouseout', hideTooltip);
+                .on('mouseout', function () {
+                    hideTooltip();
+                    d3.select(this).style('stroke-width', '2px');
+                })
+                .on('click', function (event, d) {
+                    openSessionLog(d.session_id);
+                });
 
             bubbles.transition()
                 .duration(800)
@@ -1540,6 +1621,12 @@
             const container = document.getElementById('chart');
             container.innerHTML = '';
 
+            // Add clickable hint
+            const hint = document.createElement('div');
+            hint.className = 'clickable-hint';
+            hint.textContent = '💡 Click any flow or node to view session logs';
+            container.appendChild(hint);
+
             // Get container dimensions
             const containerRect = container.getBoundingClientRect();
             const containerWidth = containerRect.width;
@@ -1584,13 +1671,15 @@
                 links.push({
                     source: sourceIdx,
                     target: middleIdx,
-                    value: d.count
+                    value: d.count,
+                    session_id: d.session_id
                 });
 
                 links.push({
                     source: middleIdx,
                     target: targetIdx,
-                    value: d.count
+                    value: d.count,
+                    session_id: d.session_id
                 });
             });
 
@@ -1626,8 +1715,15 @@
                 .attr('stroke-width', d => Math.max(1, d.width))
                 .on('mouseover', function (event, d) {
                     showSankeyTooltip(event, d);
+                    d3.select(this).style('stroke-opacity', '0.8');
                 })
-                .on('mouseout', hideTooltip);
+                .on('mouseout', function () {
+                    hideTooltip();
+                    d3.select(this).style('stroke-opacity', '0.3');
+                })
+                .on('click', function (event, d) {
+                    openSessionLog(d.session_id);
+                });
 
             const node = g.append('g')
                 .selectAll('.sankey-node')
@@ -1644,7 +1740,15 @@
                 .on('mouseover', function (event, d) {
                     showSankeyNodeTooltip(event, d);
                 })
-                .on('mouseout', hideTooltip);
+                .on('mouseout', hideTooltip)
+                .on('click', function (event, d) {
+                    // For nodes, get the first session_id from connected links
+                    if (d.sourceLinks && d.sourceLinks.length > 0) {
+                        openSessionLog(d.sourceLinks[0].session_id);
+                    } else if (d.targetLinks && d.targetLinks.length > 0) {
+                        openSessionLog(d.targetLinks[0].session_id);
+                    }
+                });
 
             node.append('text')
                 .attr('x', d => (d.x1 - d.x0) / 2)

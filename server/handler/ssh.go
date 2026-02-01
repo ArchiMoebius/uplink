@@ -56,7 +56,7 @@ type AuthMethod struct {
 
 type SSHConnectionEvent struct {
 	ID                 uint             `gorm:"primaryKey"`
-	SessionUUID        string           `gorm:"uniqueIndex;size:32;not null"`
+	SessionID          string           `gorm:"uniqueIndex;size:64;not null"`
 	ServiceID          uint             `gorm:"not null;index:idx_service_timestamp"`
 	Service            Service          `gorm:"foreignKey:ServiceID;constraint:OnDelete:RESTRICT"`
 	SourceIPID         uint             `gorm:"not null;index"`
@@ -119,18 +119,17 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 	if len(event.ServiceUuid) != 16 {
 		return fmt.Errorf("invalid service UUID length: %d", len(event.ServiceUuid))
 	}
-	if len(event.SessionUuid) != 16 {
+	if len(event.SessionUuid) != 64 {
 		return fmt.Errorf("invalid session UUID length: %d", len(event.SessionUuid))
 	}
 	if len(event.Hassh) != 32 {
 		return fmt.Errorf("hassh is required")
 	}
 
-	log.Printf("Processing SSH event: service_uuid=%x, hassh=%x, source_port=%d",
-		event.ServiceUuid, event.Hassh, event.SourcePort)
-
 	serviceUUID := hex.EncodeToString(event.ServiceUuid)
-	sessionUUID := hex.EncodeToString(event.SessionUuid)
+	sessionUUID := string(event.SessionUuid)
+
+	log.Printf("Processing SSH event: session_uuid=%x, service_uuid=%x, hassh=%x", sessionUUID, serviceUUID, event.Hassh)
 
 	return h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		service, err := h.getOrCreateService(tx, serviceUUID)
@@ -178,7 +177,7 @@ func (h *SSHEventHandler) Handle(ctx context.Context, event *pb.SSHConnectionEve
 
 		eventTimestamp := time.Unix(0, event.TimestampMicros*1000)
 		sshEvent := SSHConnectionEvent{
-			SessionUUID:        sessionUUID,
+			SessionID:          sessionUUID,
 			ServiceID:          service.ID,
 			SourceIPID:         sourceIP.ID,
 			SourcePort:         event.SourcePort,

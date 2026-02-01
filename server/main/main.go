@@ -2,12 +2,16 @@ package main
 
 import (
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -53,16 +57,18 @@ type ServiceResponse struct {
 }
 
 type HeatmapDataPoint struct {
-	Username string `json:"username"`
-	SourceIP string `json:"source_ip"`
-	Count    int64  `json:"count"`
+	Username  string `json:"username"`
+	SourceIP  string `json:"source_ip"`
+	Count     int64  `json:"count"`
+	SessionID string `json:"session_id"`
 }
 
 type SankeyDataPoint struct {
-	Source string `json:"source"`
-	Middle string `json:"middle"`
-	Target string `json:"target"`
-	Count  int64  `json:"count"`
+	Source    string `json:"source"`
+	Middle    string `json:"middle"`
+	Target    string `json:"target"`
+	Count     int64  `json:"count"`
+	SessionID string `json:"session_id"`
 }
 
 type BubbleMapDataPoint struct {
@@ -72,21 +78,22 @@ type BubbleMapDataPoint struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Count     int64   `json:"count"`
+	SessionID string  `json:"session_id"`
 }
 
-// New structure for table view events
 type EventDataPoint struct {
-	ID              uint      `json:"id"`
-	Timestamp       time.Time `json:"timestamp"`
-	SourceIP        string    `json:"source_ip"`
-	SourcePort      int       `json:"source_port"`
-	Username        string    `json:"username"`
-	Password        string    `json:"password"`
-	SSHClientName   string    `json:"ssh_client_name"`
-	HASSH           string    `json:"hassh"`
-	AuthMethods     string    `json:"auth_methods"`
-	Country         string    `json:"country"`
-	City            string    `json:"city"`
+	ID            uint      `json:"id"`
+	Timestamp     time.Time `json:"timestamp"`
+	SourceIP      string    `json:"source_ip"`
+	SourcePort    int       `json:"source_port"`
+	Username      string    `json:"username"`
+	Password      string    `json:"password"`
+	SSHClientName string    `json:"ssh_client_name"`
+	HASSH         string    `json:"hassh"`
+	AuthMethods   string    `json:"auth_methods"`
+	Country       string    `json:"country"`
+	City          string    `json:"city"`
+	SessionID     string    `json:"session_id"`
 }
 
 func NewServer(db *gorm.DB, eventHandler *handler.SSHEventHandler, geoIP *GeoIPService) *Server {
@@ -252,6 +259,7 @@ func (s *Server) getEvents(w http.ResponseWriter, r *http.Request) {
 		Password      *string   `gorm:"column:password"`
 		SSHClientName *string   `gorm:"column:ssh_client_name"`
 		HASSH         string    `gorm:"column:hassh"`
+		SessionID     string    `gorm:"column:session_id"`
 	}
 
 	var queryResults []QueryResult
@@ -260,6 +268,7 @@ func (s *Server) getEvents(w http.ResponseWriter, r *http.Request) {
 		SELECT 
 			e.id,
 			e.timestamp,
+			e.session_id,
 			ip.address as source_ip,
 			e.source_port,
 			u.username,
@@ -323,16 +332,17 @@ func (s *Server) getEvents(w http.ResponseWriter, r *http.Request) {
 		if hassh == "" {
 			hassh = "unknown"
 		}
-		
+
 		event := EventDataPoint{
-			ID:         qr.ID,
-			Timestamp:  qr.Timestamp,
-			SourceIP:   qr.SourceIP,
-			SourcePort: qr.SourcePort,
-			Username:   stringOrDefault(qr.Username, "anonymous"),
-			Password:   stringOrDefault(qr.Password, "[none]"),
+			ID:            qr.ID,
+			Timestamp:     qr.Timestamp,
+			SourceIP:      qr.SourceIP,
+			SourcePort:    qr.SourcePort,
+			Username:      stringOrDefault(qr.Username, "anonymous"),
+			Password:      stringOrDefault(qr.Password, "[none]"),
 			SSHClientName: stringOrDefault(qr.SSHClientName, "unknown"),
-			HASSH:      hassh,
+			HASSH:         hassh,
+			SessionID:     qr.SessionID,
 		}
 
 		// Add auth methods
@@ -432,16 +442,18 @@ func (s *Server) getBubbleMapData(w http.ResponseWriter, r *http.Request) {
 
 	// Query for username/password/IP combinations with counts
 	type QueryResult struct {
-		Username string
-		Password string
-		SourceIP string
-		Count    int64
+		Username  string
+		Password  string
+		SourceIP  string
+		Count     int64
+		SessionID string
 	}
 
 	var queryResults []QueryResult
 
 	query := `
 		SELECT 
+		    e.session_id,
 			COALESCE(u.username, 'anonymous') as username,
 			COALESCE(pwd.password, '[none]') as password,
 			ip.address as source_ip,
@@ -474,6 +486,7 @@ func (s *Server) getBubbleMapData(w http.ResponseWriter, r *http.Request) {
 			Latitude:  loc.Latitude,
 			Longitude: loc.Longitude,
 			Count:     qr.Count,
+			SessionID: qr.SessionID,
 		})
 	}
 
@@ -558,6 +571,7 @@ func (s *Server) buildSankeyQuery(sourceField, middleField, targetField string) 
 
 	query := fmt.Sprintf(`
 		SELECT 
+		    e.session_id,
 			%s as source,
 			%s as middle,
 			%s as target,
@@ -604,6 +618,7 @@ func (s *Server) buildHeatmapQuery(xAxis, yAxis string) string {
 
 	query := fmt.Sprintf(`
 		SELECT 
+		    e.session_id,
 			%s as username,
 			%s as source_ip,
 			COUNT(*) as count
@@ -646,6 +661,7 @@ func (s *Server) buildAuthMethodsHeatmapQuery(xAxis, yAxis string) string {
 		// Auth methods on X-axis (source_ip), other field on Y-axis (username)
 		query = fmt.Sprintf(`
 			SELECT 
+			    e.session_id,
 				%s as username,
 				COALESCE(am.method_name, 'none') as source_ip,
 				COUNT(*) as count
@@ -663,6 +679,7 @@ func (s *Server) buildAuthMethodsHeatmapQuery(xAxis, yAxis string) string {
 		// Auth methods on Y-axis (username), other field on X-axis (source_ip)
 		query = fmt.Sprintf(`
 			SELECT 
+			    e.session_id,
 				COALESCE(am.method_name, 'none') as username,
 				%s as source_ip,
 				COUNT(*) as count
@@ -779,6 +796,75 @@ func (s *Server) getStats(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(stats)
 }
 
+// GET /api/session/{session_id}/content - Get raw log content
+func (s *Server) getSessionLogContent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["session_id"]
+
+	// Validate session_id format (64 character hex string)
+	if len(sessionID) != 64 {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// Validate hex string using standard library
+	if _, err := hex.DecodeString(sessionID); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// Construct path safely
+	logPath := filepath.Join("/var/log/fishler/session", sessionID+".log")
+
+	// Verify resolved path is within allowed directory (prevents symlink attacks)
+	realPath, err := filepath.EvalSymlinks(logPath)
+	if err != nil || !strings.HasPrefix(realPath, "/var/log/fishler/session/") {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+
+	// Open file for streaming
+	file, err := os.Open(realPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "Session not found", http.StatusNotFound)
+		} else {
+			log.Printf("Error opening session log: %v", err)
+			http.Error(w, "Session not found", http.StatusNotFound)
+		}
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Printf("Error getting file info: %v", err)
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+
+	const maxFileSize = 100 * 1024 * 1024 // 100MB
+	if fileInfo.Size() > maxFileSize {
+		http.Error(w, "Log file too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+
+	// Stream the file with http.ServeContent
+	// This handles:
+	// - Streaming in chunks (constant memory usage)
+	// - Range requests (partial content / resume downloads)
+	// - ETag generation
+	// - Last-Modified headers
+	// - Content-Length headers
+	// - If-Modified-Since / If-None-Match conditional requests
+	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
+}
+
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -853,11 +939,12 @@ func main() {
 
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/services", server.getServices).Methods("GET")
-	api.HandleFunc("/events/{service_uuid}", server.getEvents).Methods("GET")  // NEW ENDPOINT
+	api.HandleFunc("/events/{service_uuid}", server.getEvents).Methods("GET")
 	api.HandleFunc("/heatmap/{service_uuid}", server.getHeatmapData).Methods("GET")
 	api.HandleFunc("/sankey/{service_uuid}", server.getSankeyData).Methods("GET")
 	api.HandleFunc("/bubblemap/{service_uuid}", server.getBubbleMapData).Methods("GET")
 	api.HandleFunc("/stats/{service_uuid}", server.getStats).Methods("GET")
+	api.HandleFunc("/session/{session_id}/content", server.getSessionLogContent).Methods("GET")
 
 	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {

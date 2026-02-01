@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"net"
 	"time"
@@ -54,8 +56,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  54321,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_PASSWORD,
 			},
@@ -72,8 +74,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  49152,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_PUBLICKEY,
 			},
@@ -92,8 +94,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  35678,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_PASSWORD,
 			},
@@ -110,8 +112,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  44444,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_KEYBOARD_INTERACTIVE,
 				pb.AuthMethod_AUTH_METHOD_PASSWORD,
@@ -129,8 +131,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  60000,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_GSSAPI_WITH_MIC,
 			},
@@ -146,8 +148,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  55555,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_HOSTBASED,
 			},
@@ -166,8 +168,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  12345,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_NONE,
 			},
@@ -182,8 +184,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  33333,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_PUBLICKEY,
 			},
@@ -204,8 +206,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  22222,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_PASSWORD,
 			},
@@ -222,8 +224,8 @@ func createExampleEvents() []*pb.SSHConnectionEvent {
 			},
 			SourcePort:  52000,
 			ServiceUuid: uuidToBytes(serviceUUID),
-			SessionUuid: uuidToBytes(uuid.New()),
-			Hassh: []byte("61616536623936303466366633333537"),
+			SessionUuid: []byte(fmt.Sprintf("%x", sha256.Sum256(uuidToBytes(uuid.New())))),
+			Hassh:       []byte("61616536623936303466366633333537"),
 			AuthMethods: []pb.AuthMethod{
 				pb.AuthMethod_AUTH_METHOD_KEYBOARD_INTERACTIVE,
 			},
