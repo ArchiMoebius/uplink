@@ -816,9 +816,9 @@
     <div class="tooltip" id="tooltip"></div>
 
     <script>
-        const API_BASE = `${window.location.protocol}//${window.location.host}/e7d516f4d1a0e51a0f7bd70fbbaaa715/api`;
-        const WS_URL = `ws://${window.location.host}/e7d516f4d1a0e51a0f7bd70fbbaaa715/ws`;
-
+        const API_BASE = `${window.location.protocol}//${window.location.host}${window.location.pathname.split('/').slice(0, -1).join('/')}/api`;
+        const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${window.location.pathname.replace(/\/$/, '')}/ws`;
+        
         let ws = null;
         let currentService = null;
         let currentTimeRange = 24;

@@ -1150,9 +1150,9 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/e7d516f4d1a0e51a0f7bd70fbbaaa715/ws", server.handleWebSocket)
+	r.HandleFunc("/ws", server.handleWebSocket)
 
-	api := r.PathPrefix("/e7d516f4d1a0e51a0f7bd70fbbaaa715/api").Subrouter()
+	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/services", server.getServices).Methods("GET")
 	api.HandleFunc("/events/{service_uuid}", server.getEvents).Methods("GET")
 	api.HandleFunc("/heatmap/{service_uuid}", server.getHeatmapData).Methods("GET")
@@ -1167,17 +1167,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create sub filesystem: %v", err)
 	}
-	r.PathPrefix("/86b2d7c34de6b91f09df44083f4a99b1/").Handler(
-		http.StripPrefix("/86b2d7c34de6b91f09df44083f4a99b1/",
-			http.FileServer(http.FS(staticFS)),
-		),
-	)
+	r.PathPrefix("/").Handler(http.FileServer(http.FS(staticFS)))
 
 	httpHandler := enableCORS(r)
 
 	log.Println("HTTP server starting on :8080")
 	log.Println("gRPC server listening on :50051")
 	log.Println("WebSocket endpoint: ws://localhost:8080/ws")
-	log.Println("Dashboard: http://localhost:8080")
+	log.Println("Dashboard: http://localhost:8080/")
 	log.Fatal(http.ListenAndServe(":8080", httpHandler))
 }

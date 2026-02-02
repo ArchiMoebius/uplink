@@ -1,0 +1,15 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/ssl/certs/ssl-cert-snakeoil.pem:/etc/nginx/ssl/cert.pem:ro
+      - /etc/ssl/private/ssl-cert-snakeoil.key:/etc/nginx/ssl/key.pem:ro
+      - ./logs:/var/log/nginx:rw
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
