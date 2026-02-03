@@ -1175,5 +1175,5 @@ func main() {
 	log.Println("gRPC server listening on :50051")
 	log.Println("WebSocket endpoint: ws://localhost:8080/ws")
 	log.Println("Dashboard: http://localhost:8080/")
-	log.Fatal(http.ListenAndServe(":8080", httpHandler))
+	log.Fatal(http.ListenAndServe("127.0.0.1:8080", httpHandler))
 }
